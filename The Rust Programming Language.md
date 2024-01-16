@@ -3636,11 +3636,19 @@ fn takes_and_gives_back(a_string: String) -> String { // a_string comes into
 
 Listing 4-4: Transferring ownership of return values
 
+示例 4-4: 转移返回值的所有权
+
 The ownership of a variable follows the same pattern every time: assigning a value to another variable moves it. When a variable that includes data on the heap goes out of scope, the value will be cleaned up by `drop` unless ownership of the data has been moved to another variable.
+
+变量的所有权总是遵循相同的模式：将值赋给另一个变量时移动它。当持有堆中数据值的变量离开作用域时，其值将通过 `drop` 被清理掉，除非数据被移动为另一个变量所有。
 
 While this works, taking ownership and then returning ownership with every function is a bit tedious. What if we want to let a function use a value but not take ownership? It’s quite annoying that anything we pass in also needs to be passed back if we want to use it again, in addition to any data resulting from the body of the function that we might want to return as well.
 
+虽然这样是可以的，但是在每一个函数中都获取所有权并接着返回所有权有些啰嗦。如果我们想要函数使用一个值但不获取所有权该怎么办呢？如果我们还要接着使用它的话，每次都传进去再返回来就有点烦人了，除此之外，我们也可能想返回函数体中产生的一些数据。
+
 Rust does let us return multiple values using a tuple, as shown in Listing 4-5.
+
+我们可以使用元组来返回多个值，如示例 4-5 所示。
 
 Filename: src/main.rs
 
@@ -3662,4 +3670,8 @@ fn calculate_length(s: String) -> (String, usize) {
 
 Listing 4-5: Returning ownership of parameters
 
+示例 4-5: 返回参数的所有权
+
 But this is too much ceremony and a lot of work for a concept that should be common. Luckily for us, Rust has a feature for using a value without transferring ownership, called *references*.
+
+但是这未免有些形式主义，而且这种场景应该很常见。幸运的是，Rust 对此提供了一个不用获取所有权就可以使用值的功能，叫做 **引用**（*references*）。
