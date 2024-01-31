@@ -6715,9 +6715,11 @@ There’s one more situation involving `pub` that we haven’t covered, and that
 
 Having to write out the paths to call functions can feel inconvenient and repetitive. In Listing 7-7, whether we chose the absolute or relative path to the `add_to_waitlist` function, every time we wanted to call `add_to_waitlist` we had to specify `front_of_house` and `hosting` too. Fortunately, there’s a way to simplify this process: we can create a shortcut to a path with the `use` keyword once, and then use the shorter name everywhere else in the scope.
 
-
+不得不编写路径来调用函数显得不便且重复。在示例 7-7 中，无论我们选择 `add_to_waitlist` 函数的绝对路径还是相对路径，每次我们想要调用 `add_to_waitlist` 时，都必须指定`front_of_house` 和 `hosting`。幸运的是，有一种方法可以简化这个过程。我们可以使用 `use` 关键字创建一个短路径，然后就可以在作用域中的任何地方使用这个更短的名字。
 
 In Listing 7-11, we bring the `crate::front_of_house::hosting` module into the scope of the `eat_at_restaurant` function so we only have to specify `hosting::add_to_waitlist` to call the `add_to_waitlist` function in `eat_at_restaurant`.
+
+在示例 7-11 中，我们将 `crate::front_of_house::hosting` 模块引入了 `eat_at_restaurant` 函数的作用域，而我们只需要指定 `hosting::add_to_waitlist` 即可在 `eat_at_restaurant` 中调用 `add_to_waitlist` 函数。
 
 Filename: src/lib.rs
 
@@ -6737,9 +6739,15 @@ pub fn eat_at_restaurant() {
 
 Listing 7-11: Bringing a module into scope with `use`
 
+示例 7-11: 使用 `use` 将模块引入作用域
+
 Adding `use` and a path in a scope is similar to creating a symbolic link in the filesystem. By adding `use crate::front_of_house::hosting` in the crate root, `hosting` is now a valid name in that scope, just as though the `hosting` module had been defined in the crate root. Paths brought into scope with `use` also check privacy, like any other paths.
 
+在作用域中增加 `use` 和路径类似于在文件系统中创建软连接（符号连接，symbolic link）。通过在 crate 根增加 `use crate::front_of_house::hosting`，现在 `hosting` 在作用域中就是有效的名称了，如同 `hosting` 模块被定义于 crate 根一样。通过 `use` 引入作用域的路径也会检查私有性，同其它路径一样。
+
 Note that `use` only creates the shortcut for the particular scope in which the `use` occurs. Listing 7-12 moves the `eat_at_restaurant` function into a new child module named `customer`, which is then a different scope than the `use` statement, so the function body won’t compile:
+
+注意 `use` 只能创建 `use` 所在的特定作用域内的短路径。示例 7-12 将 `eat_at_restaurant` 函数移动到了一个叫 `customer` 的子模块，这又是一个不同于 `use` 语句的作用域，所以函数体不能编译。
 
 Filename: src/lib.rs
 
@@ -6760,6 +6768,8 @@ mod customer {
 ```
 
 Listing 7-12: A `use` statement only applies in the scope it’s in
+
+示例 7-12: `use` 语句只适用于其所在的作用域
 
 The compiler error shows that the shortcut no longer applies within the `customer` module:
 
@@ -6789,7 +6799,9 @@ error: could not compile `restaurant` due to previous error; 1 warning emitted
 
 Notice there’s also a warning that the `use` is no longer used in its scope! To fix this problem, move the `use` within the `customer` module too, or reference the shortcut in the parent module with `super::hosting` within the child `customer` module.
 
-#### Creating Idiomatic `use` Paths
+注意这里还有一个警告说 `use` 在其作用域内不再被使用！为了修复这个问题，可以将 `use` 移动到 `customer` 模块内，或者在子模块 `customer` 内通过 `super::hosting` 引用父模块中的这个短路径。
+
+#### Creating Idiomatic `use` Paths 创建惯用的use路径
 
 In Listing 7-11, you might have wondered why we specified `use crate::front_of_house::hosting`and then called `hosting::add_to_waitlist` in `eat_at_restaurant` rather than specifying the `use`path all the way out to the `add_to_waitlist` function to achieve the same result, as in Listing 7-13.
 
