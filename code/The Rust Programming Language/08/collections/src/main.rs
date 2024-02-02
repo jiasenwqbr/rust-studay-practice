@@ -39,21 +39,67 @@ fn main() {
     //     println!("The first element is: {i}");
     // }
 
-    enum SpreadsheetCell {
-        Int(i32),
-        Float(f64),
-        Text(String),
+    // enum SpreadsheetCell {
+    //     Int(i32),
+    //     Float(f64),
+    //     Text(String),
+    // }
+
+    // let row = vec![
+    //     SpreadsheetCell::Int(3),
+    //     SpreadsheetCell::Text(String::from("blue")),
+    //     SpreadsheetCell::Float(10.12),
+    // ];
+
+    // {
+    //     let v = vec![1, 2, 3, 4];
+
+    //     // do stuff with v
+    // } // <- v goes out of scope and is freed here
+
+    ///////////////////////////////////////////////////////
+    // let mut s = String::new();
+    // let data = "initial contents";
+    // let s = data.to_string();
+    // let s = "initial contents".to_string();
+    // println!("The result is :{}", s);
+
+    // let hello = String::from("السلام عليكم");
+    // let hello = String::from("Dobrý den");
+    // let hello = String::from("Hello");
+    // let hello = String::from("שָׁלוֹם");
+    // let hello = String::from("नमस्ते");
+    // let hello = String::from("こんにちは");
+    // let hello = String::from("안녕하세요");
+    // let hello = String::from("你好");
+    // let hello = String::from("Olá");
+    // let hello = String::from("Здравствуйте");
+    // let hello = String::from("Hola");
+
+    // let mut s = String::from("Hello");
+    // s.push_str(" world!");
+    // println!("{}", s);
+    // let s3 = "my name is jason";
+    // s.push_str(s3);
+    // println!("{}", s)
+    // let s1 = String::from("tic");
+    // let s2 = String::from("tac");
+    // let s3 = String::from("toe");
+    // //let s = s1 + "-" + &s2 + "-" + &s3;
+    // //let s = format!("{s1}_{s2}_{s3}");
+    // let s = format!("{}_{}_{}", s1, s2, s3);
+    // println!("{s}")
+
+    let hello = "hello";
+    // let answer = &hello[1..10];
+    // println!("{}", answer);
+    for a in hello.chars() {
+        println!("{a}")
     }
-
-    let row = vec![
-        SpreadsheetCell::Int(3),
-        SpreadsheetCell::Text(String::from("blue")),
-        SpreadsheetCell::Float(10.12),
-    ];
-
-    {
-        let v = vec![1, 2, 3, 4];
-
-        // do stuff with v
-    } // <- v goes out of scope and is freed here
+    for c in "Зд".chars() {
+        println!("{c}");
+    }
+    for b in "Зд".bytes() {
+        println!("{b}");
+    }
 }
