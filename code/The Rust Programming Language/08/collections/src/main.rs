@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 fn main() {
     // // creating a new ,empty vector to hold values of type i32
     // let mut v: Vec<i32> = Vec::new();
@@ -90,16 +92,61 @@ fn main() {
     // let s = format!("{}_{}_{}", s1, s2, s3);
     // println!("{s}")
 
-    let hello = "hello";
-    // let answer = &hello[1..10];
-    // println!("{}", answer);
-    for a in hello.chars() {
-        println!("{a}")
+    // let hello = "hello";
+    // // let answer = &hello[1..10];
+    // // println!("{}", answer);
+    // for a in hello.chars() {
+    //     println!("{a}")
+    // }
+    // for c in "Зд".chars() {
+    //     println!("{c}");
+    // }
+    // for b in "Зд".bytes() {
+    //     println!("{b}");
+    // }
+
+    // let mut scores = HashMap::new();
+    // scores.insert("jason", 92);
+    // scores.insert("zhangsan", 88);
+    // println!("{:?}", scores);
+
+    // let mut scores = HashMap::new();
+    // scores.insert(String::from("Jason"), 100);
+    // scores.insert(String::from("Zhangsan"), 89);
+    // let name = String::from("Jason");
+    // let score = scores.get(&name).copied().unwrap_or(0);
+    // println!("{score}");
+    // for (k, v) in scores {
+    //     println!("{k}:{v}");
+    // }
+
+    // let field_name: String = String::from("Favorite color");
+    // let field_value = String::from("Blue");
+
+    // let mut map = HashMap::new();
+    // map.insert(field_name, field_value);
+    // // 这里 field_name 和 field_value 不再有效，
+    // // 尝试使用它们看看会出现什么编译错误
+
+    // let mut scores = HashMap::new();
+    // scores.insert(String::from("Blue"), 10);
+    // scores.insert(String::from("Blue"), 25);
+    // println!("{:?}", scores);
+
+    // let mut scores = HashMap::new();
+    // scores.insert(String::from("Blue"), 200);
+    // scores.insert(String::from("Green"), 300);
+
+    // scores.entry(String::from("Red")).or_insert(900);
+    // scores.entry(String::from("Blue")).or_insert(110);
+
+    // println!("{:?}", scores);
+
+    let text = "hello world wonderful world world world world";
+    let mut map = HashMap::new();
+    for word in text.split_ascii_whitespace() {
+        let count = map.entry(word).or_insert(0);
+        *count += 1;
     }
-    for c in "Зд".chars() {
-        println!("{c}");
-    }
-    for b in "Зд".bytes() {
-        println!("{b}");
-    }
+    println!("{:?}", map);
 }
