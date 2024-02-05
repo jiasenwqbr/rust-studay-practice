@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{self, Read};
+use std::net::IpAddr;
 fn main() {
     // panic!("crash and burn");
     // let greeting_file_result = File::open("hello.txt");
@@ -32,8 +33,13 @@ fn main() {
     // let b = read_username_from_file_1();
     // println!("{:?}", b);
 
-    let greeting_file: File = File::open("hello.txt")?;
-    println!("{:?}", greeting_file);
+    // let greeting_file: File = File::open("hello.txt")?;
+    // println!("{:?}", greeting_file);
+
+    let home: IpAddr = "127.0.0.1"
+        .parse()
+        .expect("Hardcoded IP address should be valid");
+    println!("{:?}", home);
 }
 
 // fn read_username_from_file() -> Result<String, io::Error> {
