@@ -40,6 +40,8 @@ fn main() {
         .parse()
         .expect("Hardcoded IP address should be valid");
     println!("{:?}", home);
+    let space_str = "11wretw2";
+    let space_str = space_str.len();
 }
 
 // fn read_username_from_file() -> Result<String, io::Error> {
