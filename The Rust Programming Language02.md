@@ -5046,6 +5046,741 @@ Whew! That was a lot of work, but we’ve set ourselves up for success in the fu
 
 Let’s take advantage of this newfound modularity by doing something that would have been difficult with the old code but is easy with the new code: we’ll write some tests!
 
+### 12.4  Developing the Library’s Functionality with Test-Driven Development 采用测试驱动开发完善库的功能
+
+Now that we’ve extracted the logic into *src/lib.rs* and left the argument collecting and error handling in *src/main.rs*, it’s much easier to write tests for the core functionality of our code. We can call functions directly with various arguments and check return values without having to call our binary from the command line.
+
+现在我们将逻辑提取到了 *src/lib.rs* 并将所有的参数解析和错误处理留在了 *src/main.rs* 中，为代码的核心功能编写测试将更加容易。我们可以直接使用多种参数调用函数并检查返回值而无需从命令行运行二进制文件了。如果你愿意的话，请自行为 `Config::new` 和 `run` 函数的功能编写一些测试。
+
+In this section, we’ll add the searching logic to the `minigrep` program using the test-driven development (TDD) process with the following steps:
+
+在这一部分，我们将遵循测试驱动开发（Test Driven Development, TDD）的模式来逐步增加 `minigrep`的搜索逻辑。这是一个软件开发技术，它遵循如下步骤：
+
+1. Write a test that fails and run it to make sure it fails for the reason you expect.
+2. Write or modify just enough code to make the new test pass.
+3. Refactor the code you just added or changed and make sure the tests continue to pass.
+4. Repeat from step 1!
+
+1. 编写一个会失败的测试，并运行它以确保其因为你期望的原因失败。
+2. 编写或修改刚好足够的代码来使得新的测试通过。
+3. 重构刚刚增加或修改的代码，并确保测试仍然能通过。
+4. 从步骤 1 开始重复！
+
+Though it’s just one of many ways to write software, TDD can help drive code design. Writing the test before you write the code that makes the test pass helps to maintain high test coverage throughout the process.
+
+这只是众多编写软件的方法之一，不过 TDD 有助于驱动代码的设计。在编写能使测试通过的代码之前编写测试有助于在开发过程中保持高测试覆盖率。
+
+We’ll test drive the implementation of the functionality that will actually do the searching for the query string in the file contents and produce a list of lines that match the query. We’ll add this functionality in a function called `search`.
+
+我们将测试驱动实现实际在文件内容中搜索查询字符串并返回匹配的行示例的功能。我们将在一个叫做 `search` 的函数中增加这些功能。
+
+#### Writing a Failling Test 编写失败测试
+
+Because we don’t need them anymore, let’s remove the `println!` statements from *src/lib.rs* and *src/main.rs* that we used to check the program’s behavior. Then, in *src/lib.rs*, add a `tests` module with a test function, as we did in [Chapter 11](https://doc.rust-lang.org/stable/book/ch11-01-writing-tests.html#the-anatomy-of-a-test-function). The test function specifies the behavior we want the `search` function to have: it will take a query and the text to search, and it will return only the lines from the text that contain the query. Listing 12-15 shows this test, which won’t compile yet.
+
+去掉 *src/lib.rs* 和 *src/main.rs* 中用于检查程序行为的 `println!` 语句，因为不再真正需要他们了。接着我们会像 [第十一章](https://rust.bootcss.com/ch11-01-writing-tests.html#the-anatomy-of-a-test-function) 那样增加一个 `test` 模块和一个测试函数。测试函数指定了 `search` 函数期望拥有的行为：它会获取一个需要查询的字符串和用来查询的文本，并只会返回包含请求的文本行。示例 12-15 展示了这个测试，它还不能编译：
+
+Filename: src/lib.rs
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_result() {
+        let query = "duct";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.";
+
+        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+    }
+}
+```
+
+Listing 12-15: Creating a failing test for the `search` function we wish we had
+
+示例 12-15：创建一个我们期望的 `search` 函数的失败测试
+
+This test searches for the string `"duct"`. The text we’re searching is three lines, only one of which contains `"duct"` (Note that the backslash after the opening double quote tells Rust not to put a newline character at the beginning of the contents of this string literal). We assert that the value returned from the `search` function contains only the line we expect.
+
+这里选择使用 `"duct"` 作为这个测试中需要搜索的字符串。用来搜索的文本有三行，其中只有一行包含 `"duct"`。我们断言 `search` 函数的返回值只包含期望的那一行。
+
+We aren’t yet able to run this test and watch it fail because the test doesn’t even compile: the `search` function doesn’t exist yet! In accordance with TDD principles, we’ll add just enough code to get the test to compile and run by adding a definition of the `search` function that always returns an empty vector, as shown in Listing 12-16. Then the test should compile and fail because an empty vector doesn’t match a vector containing the line `"safe, fast, productive."`
+
+我们还不能运行这个测试并看到它失败，因为它甚至都还不能编译：`search` 函数还不存在呢！我们将增加足够的代码来使其能够编译：一个总是会返回空 vector 的 `search` 函数定义，如示例 12-16 所示。然后这个测试应该能够编译并因为空 vector 并不匹配一个包含一行 `"safe, fast, productive."` 的 vector 而失败。
+
+Filename: src/lib.rs
+
+```rust
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    vec![]
+}
+```
+
+Listing 12-16: Defining just enough of the `search` function so our test will compile
+
+示例 12-16：刚好足够使测试通过编译的 `search` 函数定义
+
+Notice that we need to define an explicit lifetime `'a` in the signature of `search` and use that lifetime with the `contents` argument and the return value. Recall in [Chapter 10](https://doc.rust-lang.org/stable/book/ch10-03-lifetime-syntax.html) that the lifetime parameters specify which argument lifetime is connected to the lifetime of the return value. In this case, we indicate that the returned vector should contain string slices that reference slices of the argument `contents` (rather than the argument `query`).
+
+注意需要在 `search` 的签名中定义一个显式生命周期 `'a` 并用于 `contents` 参数和返回值。回忆一下 [第十章](https://rust.bootcss.com/ch10-03-lifetime-syntax.html) 中讲到生命周期参数指定哪个参数的生命周期与返回值的生命周期相关联。在这个例子中，我们表明返回的 vector 中应该包含引用参数 `contents`（而不是参数`query`） slice 的字符串 slice。
+
+In other words, we tell Rust that the data returned by the `search` function will live as long as the data passed into the `search` function in the `contents` argument. This is important! The data referenced *by* a slice needs to be valid for the reference to be valid; if the compiler assumes we’re making string slices of `query` rather than `contents`, it will do its safety checking incorrectly.
+
+换句话说，我们告诉 Rust 函数 `search` 返回的数据将与 `search` 函数中的参数 `contents` 的数据存在的一样久。这是非常重要的！为了使这个引用有效那么 **被** slice 引用的数据也需要保持有效；如果编译器认为我们是在创建 `query` 而不是 `contents` 的字符串 slice，那么安全检查将是不正确的。
+
+If we forget the lifetime annotations and try to compile this function, we’ll get this error:
+
+如果尝试不用生命周期编译的话，我们将得到如下错误：
+
+```console
+$ cargo build
+   Compiling minigrep v0.1.0 (file:///projects/minigrep)
+error[E0106]: missing lifetime specifier
+  --> src/lib.rs:28:51
+   |
+28 | pub fn search(query: &str, contents: &str) -> Vec<&str> {
+   |                      ----            ----         ^ expected named lifetime parameter
+   |
+   = help: this function's return type contains a borrowed value, but the signature does not say whether it is borrowed from `query` or `contents`
+help: consider introducing a named lifetime parameter
+   |
+28 | pub fn search<'a>(query: &'a str, contents: &'a str) -> Vec<&'a str> {
+   |              ++++         ++                 ++              ++
+
+For more information about this error, try `rustc --explain E0106`.
+error: could not compile `minigrep` due to previous error
+```
+
+Rust can’t possibly know which of the two arguments we need, so we need to tell it explicitly. Because `contents` is the argument that contains all of our text and we want to return the parts of that text that match, we know `contents` is the argument that should be connected to the return value using the lifetime syntax.
+
+Rust 不可能知道我们需要的是哪一个参数，所以需要告诉它。因为参数 `contents` 包含了所有的文本而且我们希望返回匹配的那部分文本，所以我们知道 `contents` 是应该要使用生命周期语法来与返回值相关联的参数。
+
+Other programming languages don’t require you to connect arguments to return values in the signature, but this practice will get easier over time. You might want to compare this example with the [“Validating References with Lifetimes”](https://doc.rust-lang.org/stable/book/ch10-03-lifetime-syntax.html#validating-references-with-lifetimes) section in Chapter 10.
+
+其他语言中并不需要你在函数签名中将参数与返回值相关联。所以这么做可能仍然感觉有些陌生，随着时间的推移这将会变得越来越容易。你可能想要将这个例子与第十章中生命 [“生命周期与引用有效性”](https://rust.bootcss.com/ch10-03-lifetime-syntax.html#validating-references-with-lifetimes) 部分做对比。
+
+Now let’s run the test:
+
+运行现在的测试:
+
+```console
+$ cargo test
+   Compiling minigrep v0.1.0 (file:///projects/minigrep)
+    Finished test [unoptimized + debuginfo] target(s) in 0.97s
+     Running unittests src/lib.rs (target/debug/deps/minigrep-9cd200e5fac0fc94)
+
+running 1 test
+test tests::one_result ... FAILED
+
+failures:
+
+---- tests::one_result stdout ----
+thread 'tests::one_result' panicked at 'assertion failed: `(left == right)`
+  left: `["safe, fast, productive."]`,
+ right: `[]`', src/lib.rs:44:9
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::one_result
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`
+```
+
+Great, the test fails, exactly as we expected. Let’s get the test to pass!
+
+好的，测试失败了，这正是我们所期望的。修改代码来让测试通过吧！
+
+#### Writing Code to Pass the Test 编写测试通过的代码
+
+Currently, our test is failing because we always return an empty vector. To fix that and implement `search`, our program needs to follow these steps:
+
+目前测试之所以会失败是因为我们总是返回一个空的 vector。为了修复并实现 `search`，我们的程序需要遵循如下步骤：
+
+- Iterate through each line of the contents.
+- Check whether the line contains our query string.
+- If it does, add it to the list of values we’re returning.
+- If it doesn’t, do nothing.
+- Return the list of results that match.
+
+- 遍历内容的每一行文本。
+- 查看这一行是否包含要搜索的字符串。
+- 如果有，将这一行加入列表返回值中。
+- 如果没有，什么也不做。
+- 返回匹配到的结果列表
+
+Let’s work through each step, starting with iterating through lines.
+
+让我们一步一步的来，从遍历每行开始。
+
+##### Iterating Through Lines with the `lines` Method 使用lines方法遍历每一行
+
+Rust has a helpful method to handle line-by-line iteration of strings, conveniently named `lines`, that works as shown in Listing 12-17. Note this won’t compile yet.
+
+Rust 有一个有助于一行一行遍历字符串的方法，出于方便它被命名为 `lines`，它如示例 12-17 这样工作。注意这还不能编译：
+
+Filename: src/lib.rs
+
+```rust
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    for line in contents.lines() {
+        // do something with line
+    }
+}
+```
+
+Listing 12-17: Iterating through each line in `contents`
+
+示例 12-17：遍历 `contents` 的每一行
+
+The `lines` method returns an iterator. We’ll talk about iterators in depth in [Chapter 13](https://doc.rust-lang.org/stable/book/ch13-02-iterators.html), but recall that you saw this way of using an iterator in [Listing 3-5](https://doc.rust-lang.org/stable/book/ch03-05-control-flow.html#looping-through-a-collection-with-for), where we used a `for` loop with an iterator to run some code on each item in a collection.
+
+`lines` 方法返回一个迭代器。[第十三章](https://rust.bootcss.com/ch13-02-iterators.html) 会深入了解迭代器，不过我们已经在 [示例 3-5](https://rust.bootcss.com/ch03-05-control-flow.html#looping-through-a-collection-with-for) 中见过使用迭代器的方法了，在那里使用了一个 `for` 循环和迭代器在一个集合的每一项上运行了一些代码。
+
+##### Searching Each Line for the Query  用查询字符串搜索每一行
+
+Next, we’ll check whether the current line contains our query string. Fortunately, strings have a helpful method named `contains` that does this for us! Add a call to the `contains` method in the `search` function, as shown in Listing 12-18. Note this still won’t compile yet.
+
+接下来将会增加检查当前行是否包含查询字符串的功能。幸运的是，字符串类型为此也有一个叫做 `contains` 的实用方法！如示例 12-18 所示在 `search` 函数中加入 `contains` 方法调用。注意这仍然不能编译：
+
+Filename: src/lib.rs
+
+```rust
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    for line in contents.lines() {
+        if line.contains(query) {
+            // do something with line
+        }
+    }
+}
+```
+
+Listing 12-18: Adding functionality to see whether the line contains the string in `query`
+
+示例 12-18：增加检查文本行是否包含 `query` 中字符串的功能
+
+At the moment, we’re building up functionality. To get it to compile, we need to return a value from the body as we indicated we would in the function signature.
+
+##### Storing Matching Lines 存储匹配行
+
+To finish this function, we need a way to store the matching lines that we want to return. For that, we can make a mutable vector before the `for` loop and call the `push` method to store a `line` in the vector. After the `for` loop, we return the vector, as shown in Listing 12-19.
+
+我们还需要一个方法来存储包含查询字符串的行。为此可以在 `for` 循环之前创建一个可变的 vector 并调用 `push` 方法在 vector 中存放一个 `line`。在 `for` 循环之后，返回这个 vector，如示例 12-19 所示：
+
+Filename: src/lib.rs
+
+```rust
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    let mut results = Vec::new();
+
+    for line in contents.lines() {
+        if line.contains(query) {
+            results.push(line);
+        }
+    }
+
+    results
+}
+```
+
+Listing 12-19: Storing the lines that match so we can return them
+
+示例 12-19：储存匹配的行以便可以返回他们
+
+Now the `search` function should return only the lines that contain `query`, and our test should pass. Let’s run the test:
+
+现在 `search` 函数应该返回只包含 `query` 的那些行，而测试应该会通过。让我们运行测试：
+
+```console
+$ cargo test
+   Compiling minigrep v0.1.0 (file:///projects/minigrep)
+    Finished test [unoptimized + debuginfo] target(s) in 1.22s
+     Running unittests src/lib.rs (target/debug/deps/minigrep-9cd200e5fac0fc94)
+
+running 1 test
+test tests::one_result ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/minigrep-9cd200e5fac0fc94)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests minigrep
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+```
+
+
+
+Our test passed, so we know it works!
+
+现在测试通过了，它可以工作了！
+
+At this point, we could consider opportunities for refactoring the implementation of the search function while keeping the tests passing to maintain the same functionality. The code in the search function isn’t too bad, but it doesn’t take advantage of some useful features of iterators. We’ll return to this example in [Chapter 13](https://doc.rust-lang.org/stable/book/ch13-02-iterators.html), where we’ll explore iterators in detail, and look at how to improve it.
+
+到此为止，我们可以考虑一下重构 `search` 的实现并时刻保持测试通过来保持其功能不变的机会了。`search` 函数中的代码并不坏，不过并没有利用迭代器的一些实用功能。第十三章将回到这个例子并深入探索迭代器并看看如何改进代码。
+
+##### Using the `search` Function in the `run` Function 在run函数中使用search函数
+
+Now that the `search` function is working and tested, we need to call `search` from our `run`function. We need to pass the `config.query` value and the `contents` that `run` reads from the file to the `search` function. Then `run` will print each line returned from `search`:
+
+现在 `search` 函数是可以工作并测试通过了的，我们需要实际在 `run` 函数中调用 `search`。需要将 `config.query` 值和 `run` 从文件中读取的 `contents` 传递给 `search` 函数。接着 `run` 会打印出 `search` 返回的每一行：
+
+Filename: src/lib.rs
+
+```rust
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(config.file_path)?;
+
+    for line in search(&config.query, &contents) {
+        println!("{line}");
+    }
+
+    Ok(())
+}
+```
+
+We’re still using a `for` loop to return each line from `search` and print it.
+
+这里仍然使用了 `for` 循环获取了 `search` 返回的每一行并打印出来。
+
+Now the entire program should work! Let’s try it out, first with a word that should return exactly one line from the Emily Dickinson poem, “frog”:
+
+现在整个程序应该可以工作了！让我们试一试，首先使用一个只会在艾米莉·狄金森的诗中返回一行的单词 “frog”：
+
+```console
+$ cargo run -- frog poem.txt
+   Compiling minigrep v0.1.0 (file:///projects/minigrep)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.38s
+     Running `target/debug/minigrep frog poem.txt`
+How public, like a frog
+```
+
+Cool! Now let’s try a word that will match multiple lines, like “body”:
+
+好的！现在试试一个会匹配多行的单词，比如 “body”：
+
+```console
+$ cargo run -- body poem.txt
+   Compiling minigrep v0.1.0 (file:///projects/minigrep)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.0s
+     Running `target/debug/minigrep body poem.txt`
+I'm nobody! Who are you?
+Are you nobody, too?
+How dreary to be somebody!
+```
+
+And finally, let’s make sure that we don’t get any lines when we search for a word that isn’t anywhere in the poem, such as “monomorphization”:
+
+最后，让我们确保搜索一个在诗中哪里都没有的单词时不会得到任何行，比如 "monomorphization"：
+
+```console
+$ cargo run -- monomorphization poem.txt
+   Compiling minigrep v0.1.0 (file:///projects/minigrep)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.0s
+     Running `target/debug/minigrep monomorphization poem.txt`
+```
+
+Excellent! We’ve built our own mini version of a classic tool and learned a lot about how to structure applications. We’ve also learned a bit about file input and output, lifetimes, testing, and command line parsing.
+
+非常好！我们创建了一个属于自己的迷你版经典工具，并学习了很多如何组织程序的知识。我们还学习了一些文件输入输出、生命周期、测试和命令行解析的内容。
+
+To round out this project, we’ll briefly demonstrate how to work with environment variables and how to print to standard error, both of which are useful when you’re writing command line programs.
+
+为了使这个项目更丰满，我们将简要的展示如何处理环境变量和打印到标准错误，这两者在编写命令行程序时都很有用。
+
+### 12.5.Working with Environment Variables 处理环境变量
+
+We’ll improve `minigrep` by adding an extra feature: an option for case-insensitive searching that the user can turn on via an environment variable. We could make this feature a command line option and require that users enter it each time they want it to apply, but by instead making it an environment variable, we allow our users to set the environment variable once and have all their searches be case insensitive in that terminal session.
+
+我们将增加一个额外的功能来改进 `minigrep`：用户可以通过设置环境变量来设置搜索是否是大小写敏感的 。当然，我们也可以将其设计为一个命令行参数并要求用户每次需要时都加上它，不过在这里我们将使用环境变量。这允许用户设置环境变量一次之后在整个终端会话中所有的搜索都将是大小写不敏感的。
+
+#### Writing a Failing Test for the Case-Insensitive `search` Function  编写一个大小写不敏感的search函数的失败测试
+
+We first add a new `search_case_insensitive` function that will be called when the environment variable has a value. We’ll continue to follow the TDD process, so the first step is again to write a failing test. We’ll add a new test for the new `search_case_insensitive` function and rename our old test from `one_result` to `case_sensitive` to clarify the differences between the two tests, as shown in Listing 12-20.
+
+我们希望增加一个新函数 `search_case_insensitive`，并将会在设置了环境变量时调用它。这里将继续遵循 TDD 过程，其第一步是再次编写一个失败测试。我们将为新的大小写不敏感搜索函数新增一个测试函数，并将老的测试函数从 `one_result` 改名为 `case_sensitive` 来更清楚的表明这两个测试的区别，如示例 12-20 所示：
+
+Filename: src/lib.rs
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn case_sensitive() {
+        let query = "duct";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Duct tape.";
+
+        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+    }
+
+    #[test]
+    fn case_insensitive() {
+        let query = "rUsT";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Trust me.";
+
+        assert_eq!(
+            vec!["Rust:", "Trust me."],
+            search_case_insensitive(query, contents)
+        );
+    }
+}
+```
+
+Listing 12-20: Adding a new failing test for the case-insensitive function we’re about to add
+
+示例 12-21：定义 `search_case_insensitive` 函数，它在比较查询和每一行之前将他们都转换为小写
+
+Note that we’ve edited the old test’s `contents` too. We’ve added a new line with the text `"Duct tape."` using a capital D that shouldn’t match the query `"duct"` when we’re searching in a case-sensitive manner. Changing the old test in this way helps ensure that we don’t accidentally break the case-sensitive search functionality that we’ve already implemented. This test should pass now and should continue to pass as we work on the case-insensitive search.
+
+首先我们将 `query` 字符串转换为小写，并将其覆盖到同名的变量中。对查询字符串调用 `to_lowercase`是必需的，这样不管用户的查询是 `"rust"`、`"RUST"`、`"Rust"` 或者 `"rUsT"`，我们都将其当作 `"rust"`处理并对大小写不敏感。
+
+The new test for the case-*insensitive* search uses `"rUsT"` as its query. In the `search_case_insensitive` function we’re about to add, the query `"rUsT"` should match the line containing `"Rust:"` with a capital R and match the line `"Trust me."` even though both have different casing from the query. This is our failing test, and it will fail to compile because we haven’t yet defined the `search_case_insensitive` function. Feel free to add a skeleton implementation that always returns an empty vector, similar to the way we did for the `search` function in Listing 12-16 to see the test compile and fail.
+
+注意 `query` 现在是一个 `String` 而不是字符串 slice，因为调用 `to_lowercase` 是在创建新数据，而不是引用现有数据。如果查询字符串是 `"rUsT"`，这个字符串 slice 并不包含可供我们使用的小写的 `u` 或 `t`，所以必需分配一个包含 `"rust"` 的新 `String`。现在当我们将 `query` 作为一个参数传递给 `contains` 方法时，需要增加一个 & 因为 `contains` 的签名被定义为获取一个字符串 slice。
+
+#### Implementing the `search_case_insensitive` Function
+
+The `search_case_insensitive` function, shown in Listing 12-21, will be almost the same as the `search` function. The only difference is that we’ll lowercase the `query` and each `line` so whatever the case of the input arguments, they’ll be the same case when we check whether the line contains the query.
+
+这里增加了 `case_sensitive` 字符来存放一个布尔值。接着我们需要 `run` 函数检查 `case_sensitive`字段的值并使用它来决定是否调用 `search` 函数或 `search_case_insensitive` 函数，如示例 12-22 所示。注意这还不能编译：
+
+Filename: src/lib.rs
+
+```rust
+pub fn search_case_insensitive<'a>(
+    query: &str,
+    contents: &'a str,
+) -> Vec<&'a str> {
+    let query = query.to_lowercase();
+    let mut results = Vec::new();
+
+    for line in contents.lines() {
+        if line.to_lowercase().contains(&query) {
+            results.push(line);
+        }
+    }
+
+    results
+}
+```
+
+Listing 12-21: Defining the `search_case_insensitive` function to lowercase the query and the line before comparing them
+
+First, we lowercase the `query` string and store it in a shadowed variable with the same name. Calling `to_lowercase` on the query is necessary so no matter whether the user’s query is `"rust"`, `"RUST"`, `"Rust"`, or `"rUsT"`, we’ll treat the query as if it were `"rust"` and be insensitive to the case. While `to_lowercase` will handle basic Unicode, it won’t be 100% accurate. If we were writing a real application, we’d want to do a bit more work here, but this section is about environment variables, not Unicode, so we’ll leave it at that here.
+
+Note that `query` is now a `String` rather than a string slice, because calling `to_lowercase` creates new data rather than referencing existing data. Say the query is `"rUsT"`, as an example: that string slice doesn’t contain a lowercase `u` or `t` for us to use, so we have to allocate a new `String`containing `"rust"`. When we pass `query` as an argument to the `contains` method now, we need to add an ampersand because the signature of `contains` is defined to take a string slice.
+
+Next, we add a call to `to_lowercase` on each `line` to lowercase all characters. Now that we’ve converted `line` and `query` to lowercase, we’ll find matches no matter what the case of the query is.
+
+Let’s see if this implementation passes the tests:
+
+```console
+$ cargo test
+   Compiling minigrep v0.1.0 (file:///projects/minigrep)
+    Finished test [unoptimized + debuginfo] target(s) in 1.33s
+     Running unittests src/lib.rs (target/debug/deps/minigrep-9cd200e5fac0fc94)
+
+running 2 tests
+test tests::case_insensitive ... ok
+test tests::case_sensitive ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/minigrep-9cd200e5fac0fc94)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests minigrep
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+```
+
+
+
+Great! They passed. Now, let’s call the new `search_case_insensitive` function from the `run`function. First, we’ll add a configuration option to the `Config` struct to switch between case-sensitive and case-insensitive search. Adding this field will cause compiler errors because we aren’t initializing this field anywhere yet:
+
+Filename: src/lib.rs
+
+```rust
+pub struct Config {
+    pub query: String,
+    pub file_path: String,
+    pub ignore_case: bool,
+}
+```
+
+We added the `ignore_case` field that holds a Boolean. Next, we need the `run` function to check the `ignore_case` field’s value and use that to decide whether to call the `search` function or the `search_case_insensitive` function, as shown in Listing 12-22. This still won’t compile yet.
+
+Filename: src/lib.rs
+
+```rust
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(config.file_path)?;
+
+    let results = if config.ignore_case {
+        search_case_insensitive(&config.query, &contents)
+    } else {
+        search(&config.query, &contents)
+    };
+
+    for line in results {
+        println!("{line}");
+    }
+
+    Ok(())
+}
+```
+
+
+
+Listing 12-22: Calling either `search` or `search_case_insensitive` based on the value in `config.ignore_case`
+
+Finally, we need to check for the environment variable. The functions for working with environment variables are in the `env` module in the standard library, so we bring that module into scope at the top of *src/lib.rs*. Then we’ll use the `var` function from the `env` module to check to see if any value has been set for an environment variable named `IGNORE_CASE`, as shown in Listing 12-23.
+
+Filename: src/lib.rs
+
+```rust
+use std::env;
+// --snip--
+
+impl Config {
+    pub fn build(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+
+        let query = args[1].clone();
+        let file_path = args[2].clone();
+
+        let ignore_case = env::var("IGNORE_CASE").is_ok();
+
+        Ok(Config {
+            query,
+            file_path,
+            ignore_case,
+        })
+    }
+}
+```
+
+
+
+Listing 12-23: Checking for any value in an environment variable named `IGNORE_CASE`
+
+Here, we create a new variable `ignore_case`. To set its value, we call the `env::var` function and pass it the name of the `IGNORE_CASE` environment variable. The `env::var` function returns a `Result` that will be the successful `Ok` variant that contains the value of the environment variable if the environment variable is set to any value. It will return the `Err` variant if the environment variable is not set.
+
+We’re using the `is_ok` method on the `Result` to check whether the environment variable is set, which means the program should do a case-insensitive search. If the `IGNORE_CASE` environment variable isn’t set to anything, `is_ok` will return false and the program will perform a case-sensitive search. We don’t care about the *value* of the environment variable, just whether it’s set or unset, so we’re checking `is_ok` rather than using `unwrap`, `expect`, or any of the other methods we’ve seen on `Result`.
+
+We pass the value in the `ignore_case` variable to the `Config` instance so the `run` function can read that value and decide whether to call `search_case_insensitive` or `search`, as we implemented in Listing 12-22.
+
+Let’s give it a try! First, we’ll run our program without the environment variable set and with the query `to`, which should match any line that contains the word “to” in all lowercase:
+
+```console
+$ cargo run -- to poem.txt
+   Compiling minigrep v0.1.0 (file:///projects/minigrep)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.0s
+     Running `target/debug/minigrep to poem.txt`
+Are you nobody, too?
+How dreary to be somebody!
+```
+
+Looks like that still works! Now, let’s run the program with `IGNORE_CASE` set to `1` but with the same query `to`.
+
+```console
+$ IGNORE_CASE=1 cargo run -- to poem.txt
+```
+
+If you’re using PowerShell, you will need to set the environment variable and run the program as separate commands:
+
+```console
+PS> $Env:IGNORE_CASE=1; cargo run -- to poem.txt
+```
+
+This will make `IGNORE_CASE` persist for the remainder of your shell session. It can be unset with the `Remove-Item` cmdlet:
+
+```console
+PS> Remove-Item Env:IGNORE_CASE
+```
+
+We should get lines that contain “to” that might have uppercase letters:
+
+```console
+Are you nobody, too?
+How dreary to be somebody!
+To tell your name the livelong day
+To an admiring bog!
+```
+
+Excellent, we also got lines containing “To”! Our `minigrep` program can now do case-insensitive searching controlled by an environment variable. Now you know how to manage options set using either command line arguments or environment variables.
+
+好极了，我们也得到了包含 “To” 的行！现在 `minigrep` 程序可以通过环境变量控制进行大小写不敏感搜索了。现在你知道了如何管理由命令行参数或环境变量设置的选项了！
+
+Some programs allow arguments *and* environment variables for the same configuration. In those cases, the programs decide that one or the other takes precedence. For another exercise on your own, try controlling case sensitivity through either a command line argument or an environment variable. Decide whether the command line argument or the environment variable should take precedence if the program is run with one set to case sensitive and one set to ignore case.
+
+一些程序允许对相同配置同时使用参数 **和** 环境变量。在这种情况下，程序来决定参数和环境变量的优先级。作为一个留给你的测试，尝试通过一个命令行参数或一个环境变量来控制大小写不敏感搜索。并在运行程序时遇到矛盾值时决定命令行参数和环境变量的优先级。
+
+The `std::env` module contains many more useful features for dealing with environment variables: check out its documentation to see what is available.
+
+`std::env` 模块还包含了更多处理环境变量的实用功能；请查看官方文档来了解其可用的功能。
+
+### 12.6.Writing Error Messages to Standard Error Instead of Standard Output 将错误信息输出到标准而不是标准输出
+
+At the moment, we’re writing all of our output to the terminal using the `println!` macro. In most terminals, there are two kinds of output: *standard output* (`stdout`) for general information and *standard error* (`stderr`) for error messages. This distinction enables users to choose to direct the successful output of a program to a file but still print error messages to the screen.
+
+目前为止，我们将所有的输出都 `println!` 到了终端。大部分终端都提供了两种输出：**标准输出**（*standard output*，`stdout`）对应一般信息，**标准错误**（*standard error*，`stderr`）则用于错误信息。这种区别允许用户选择将程序正常输出定向到一个文件中并仍将错误信息打印到屏幕上。
+
+The `println!` macro is only capable of printing to standard output, so we have to use something else to print to standard error.
+
+但是 `println!` 函数只能够打印到标准输出，所以我们必需使用其他方法来打印到标准错误。
+
+### [Checking Where Errors Are Written](https://doc.rust-lang.org/stable/book/ch12-06-writing-to-stderr-instead-of-stdout.html#checking-where-errors-are-written)
+
+First, let’s observe how the content printed by `minigrep` is currently being written to standard output, including any error messages we want to write to standard error instead. We’ll do that by redirecting the standard output stream to a file while intentionally causing an error. We won’t redirect the standard error stream, so any content sent to standard error will continue to display on the screen.
+
+首先，让我们观察一下目前 `minigrep` 打印的所有内容是如何被写入标准输出的，包括那些应该被写入标准错误的错误信息。可以通过将标准输出流重定向到一个文件同时有意产生一个错误来做到这一点。我们没有重定向标准错误流，所以任何发送到标准错误的内容将会继续显示在屏幕上。
+
+Command line programs are expected to send error messages to the standard error stream so we can still see error messages on the screen even if we redirect the standard output stream to a file. Our program is not currently well-behaved: we’re about to see that it saves the error message output to a file instead!
+
+命令行程序被期望将错误信息发送到标准错误流，这样即便选择将标准输出流重定向到文件中时仍然能看到错误信息。目前我们的程序并不符合期望；相反我们将看到它将错误信息输出保存到了文件中。
+
+To demonstrate this behavior, we’ll run the program with `>` and the file path, *output.txt*, that we want to redirect the standard output stream to. We won’t pass any arguments, which should cause an error:
+
+我们通过 `>` 和文件名 *output.txt* 来运行程序，我们期望重定向标准输出流到该文件中。在这里，我们没有传递任何参数，所以会产生一个错误：
+
+```console
+$ cargo run > output.txt
+```
+
+The `>` syntax tells the shell to write the contents of standard output to *output.txt* instead of the screen. We didn’t see the error message we were expecting printed to the screen, so that means it must have ended up in the file. This is what *output.txt* contains:
+
+`>` 语法告诉 shell 将标准输出的内容写入到 *output.txt* 文件中而不是屏幕上。我们并没有看到期望的错误信息打印到屏幕上，所以这意味着它一定被写入了文件中。如下是 *output.txt* 所包含的：
+
+```text
+Problem parsing arguments: not enough arguments
+```
+
+Yup, our error message is being printed to standard output. It’s much more useful for error messages like this to be printed to standard error so only data from a successful run ends up in the file. We’ll change that.
+
+是的，错误信息被打印到了标准输出中。像这样的错误信息被打印到标准错误中将会有用的多，并且只将成功运行的信息写入文件。接下来我们将对程序进行修改从而以这种方式进行输出。
+
+#### Printing Errors to Standard Error 将错误打印到标准错误
+
+We’ll use the code in Listing 12-24 to change how error messages are printed. Because of the refactoring we did earlier in this chapter, all the code that prints error messages is in one function, `main`. The standard library provides the `eprintln!` macro that prints to the standard error stream, so let’s change the two places we were calling `println!` to print errors to use `eprintln!` instead.
+
+让我们如示例 12-24 所示的代码改变错误信息是如何被打印的。得益于本章早些时候的重构，所有打印错误信息的代码都位于 `main` 一个函数中。标准库提供了 `eprintln!` 宏来打印到标准错误流，所以将两个调用 `println!` 打印错误信息的位置替换为 `eprintln!`：
+
+Filename: src/main.rs
+
+```rust
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    let config = Config::build(&args).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
+
+    if let Err(e) = minigrep::run(config) {
+        eprintln!("Application error: {e}");
+        process::exit(1);
+    }
+}
+```
+
+Listing 12-24: Writing error messages to standard error instead of standard output using `eprintln!`
+
+示例 12-24：使用 `eprintln!` 将错误信息写入标准错误而不是标准输出
+
+Let’s now run the program again in the same way, without any arguments and redirecting standard output with `>`:
+
+将 `println!` 改为 `eprintln!` 之后，让我们再次尝试用同样的方式运行程序，不使用任何参数并通过 `>`重定向标准输出：
+
+```console
+$ cargo run > output.txt
+Problem parsing arguments: not enough arguments
+```
+
+Now we see the error onscreen and *output.txt* contains nothing, which is the behavior we expect of command line programs.
+
+现在我们看到了屏幕上的错误信息，同时 *output.txt* 里什么也没有，这正是命令行程序所期望的行为。
+
+Let’s run the program again with arguments that don’t cause an error but still redirect standard output to a file, like so:
+
+如果使用不会造成错误的参数再次运行程序，不过仍然将标准输出重定向到一个文件，像这样：
+
+```console
+$ cargo run -- to poem.txt > output.txt
+```
+
+We won’t see any output to the terminal, and *output.txt* will contain our results:
+
+我们并不会在终端看到任何输出，同时 `output.txt` 将会包含其结果：
+
+Filename: output.txt
+
+```text
+Are you nobody, too?
+How dreary to be somebody!
+```
+
+This demonstrates that we’re now using standard output for successful output and standard error for error output as appropriate.
+
+这一部分展示了现在我们适当的使用了成功时产生的标准输出和错误时产生的标准错误。
+
+#### Summary 总结
+
+This chapter recapped some of the major concepts you’ve learned so far and covered how to perform common I/O operations in Rust. By using command line arguments, files, environment variables, and the `eprintln!` macro for printing errors, you’re now prepared to write command line applications. Combined with the concepts in previous chapters, your code will be well organized, store data effectively in the appropriate data structures, handle errors nicely, and be well tested.
+
+在这一章中，我们回顾了目前为止的一些主要章节并涉及了如何在 Rust 环境中进行常规的 I/O 操作。通过使用命令行参数、文件、环境变量和打印错误的 `eprintln!` 宏，现在你已经准备好编写命令行程序了。通过结合前几章的知识，你的代码将会是组织良好的，并能有效的将数据存储到合适的数据结构中、更好的处理错误，并且还是经过良好测试的。
+
+Next, we’ll explore some Rust features that were influenced by functional languages: closures and iterators.
+
+接下来，让我们探索一些 Rust 中受函数式编程语言影响的功能：闭包和迭代器。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
