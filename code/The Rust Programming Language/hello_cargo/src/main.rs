@@ -170,6 +170,15 @@ fn main() {
     // let frist = &vec[0];
     // vec.push(6);
     // println!("the frist element is {}", frist);
+    let x: i8 = 5;
+    let y: Option<i8> = Some(5);
+    let sum = match y {
+        Some(value) => x + value,
+        None => x,
+    };
+    println!("sum is {}", sum);
+    let sum1 = x + y.unwrap_or(0);
+    println!("sum1 is {}", sum1);
 }
 // fn number_value(num: &Number) -> &i32 {
 //     &num.value
