@@ -152,20 +152,25 @@
 //     // error: cannot borrow `x` as mutable because it is also borrowed as immutable
 //     println!("x_ref1 = {}", x_ref1);
 // }
-struct Number {
-    value: i32,
-}
+// struct Number {
+//     value: i32,
+// }
 
 // fn number_value<'a>(num: &'a Number) -> &'a i32 {
 //     &num.value
 // }
 
 fn main() {
-    let n = Number { value: 47 };
-    let v = number_value(&n);
+    // let n = Number { value: 47 };
+    // let v = number_value(&n);
     // `v` borrows `n` (immutably), thus: `v` cannot outlive `n`.
     // While `v` exists, `n` cannot be mutably borrowed, mutated, moved, etc.
+
+    // let mut vec = vec![1, 2, 3, 4, 5];
+    // let frist = &vec[0];
+    // vec.push(6);
+    // println!("the frist element is {}", frist);
 }
-fn number_value(num: &Number) -> &i32 {
-    &num.value
-}
+// fn number_value(num: &Number) -> &i32 {
+//     &num.value
+// }
