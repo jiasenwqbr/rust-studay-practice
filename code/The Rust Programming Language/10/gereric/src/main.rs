@@ -177,16 +177,47 @@
 //     };
 //     p3.m2(); // 我是 m2 方法
 // }
-enum MyOption<T> {
-    MySome1(T),
-    MySome2(i32),
-    MySome3(T),
-    MyNone,
-}
+// enum MyOption<T> {
+//     MySome1(T),
+//     MySome2(i32),
+//     MySome3(T),
+//     MyNone,
+// }
 
+// fn main() {
+//     let x: MyOption<i32> = MyOption::MySome1(123);
+//     if let MyOption::MySome1(value) = x {
+//         println!("the x value is {}", value);
+//     }
+// }
+
+// fn main() {
+//     let string1 = String::from("long string is long");
+//     {
+//         let string2 = String::from("jason");
+//         let result = longest(&string1, &string2);
+//         {
+//             println!("the result is {}", result);
+//         }
+//     }
+// }
+
+// fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+//     if x.len() > y.len() {
+//         x
+//     } else {
+//         y
+//     }
+// }
+
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
 fn main() {
-    let x: MyOption<i32> = MyOption::MySome1(123);
-    if let MyOption::MySome1(value) = x {
-        println!("the x value is {}", value);
-    }
+    let novel = String::from("Call me Ishmael. Some years ago...");
+    let first_sentence = novel.split('.').next().expect("Could not find a '.'");
+    let i = ImportantExcerpt {
+        part: first_sentence,
+    };
+    println!(" The part of importantExcept is {}", i.part)
 }

@@ -1292,9 +1292,938 @@ fn main() {
 
 #### 泛型生命周期
 
+为了在函数签名中使用生命周期注解，需要在函数名和参数列表间的尖括号中声明泛型生命周期（*lifetime*）参数，就像泛型类型（*type*）参数一样。
+
+我们希望函数签名表达如下限制：也就是这两个参数和返回的引用存活的一样久。（两个）参数和返回的引用的生命周期是相关的。就像示例 10-21 中在每个引用中都加上了 `'a` 那样。
+
+文件名：src/main.rs
+
+```rust
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+```
+
+示例 10-21：`longest` 函数定义指定了签名中所有的引用必须有相同的生命周期 `'a`
+
+这段代码能够编译并会产生我们希望得到的示例 10-19 中的 `main` 函数的结果。
+
+现在函数签名表明对于某些生命周期 `'a`，函数会获取两个参数，它们都是与生命周期 `'a` 存在的一样长的字符串 slice。函数会返回一个同样也与生命周期 `'a` 存在的一样长的字符串 slice。它的实际含义是 `longest` 函数返回的引用的生命周期与函数参数所引用的值的生命周期的较小者一致。这些关系就是我们希望 Rust 分析代码时所使用的。
+
+记住通过在函数签名中指定生命周期参数时，我们并没有改变任何传入值或返回值的生命周期，而是指出任何不满足这个约束条件的值都将被借用检查器拒绝。注意 `longest` 函数并不需要知道 `x` 和 `y` 具体会存在多久，而只需要知道有某个可以被 `'a` 替代的作用域将会满足这个签名。
+
+当在函数中使用生命周期注解时，这些注解出现在函数签名中，而不存在于函数体中的任何代码中。生命周期注解成为了函数约定的一部分，非常像签名中的类型。让函数签名包含生命周期约定意味着 Rust 编译器的工作变得更简单了。如果函数注解有误或者调用方法不对，编译器错误可以更准确地指出代码和限制的部分。如果不这么做的话，Rust 编译会对我们期望的生命周期关系做更多的推断，这样编译器可能只能指出离出问题地方很多步之外的代码。
+
+当具体的引用被传递给 `longest` 时，被 `'a` 所替代的具体生命周期是 `x` 的作用域与 `y` 的作用域相重叠的那一部分。换一种说法就是泛型生命周期 `'a` 的具体生命周期等同于 `x` 和 `y` 的生命周期中较小的那一个。因为我们用相同的生命周期参数 `'a` 标注了返回的引用值，所以返回的引用值就能保证在 `x` 和 `y` 中较短的那个生命周期结束之前保持有效。
+
+让我们看看如何通过传递拥有不同具体生命周期的引用来限制 `longest` 函数的使用。示例 10-22 是一个很直观的例子。
+
+文件名：src/main.rs
+
+```rust
+fn main() {
+    let string1 = String::from("long string is long");
+
+    {
+        let string2 = String::from("xyz");
+        let result = longest(string1.as_str(), string2.as_str());
+        println!("The longest string is {}", result);
+    }
+}
+```
+
+示例 10-22：通过拥有不同的具体生命周期的 `String` 值调用 `longest` 函数
+
+在这个例子中，`string1` 直到外部作用域结束都是有效的，`string2` 则在内部作用域中是有效的，而 `result` 则引用了一些直到内部作用域结束都是有效的值。借用检查器认可这些代码；它能够编译和运行，并打印出 `The longest string is long string is long`。
+
+接下来，让我们尝试另外一个例子，该例子揭示了 `result` 的引用的生命周期必须是两个参数中较短的那个。以下代码将 `result` 变量的声明移动出内部作用域，但是将 `result` 和 `string2` 变量的赋值语句一同留在内部作用域中。接着，使用了变量 `result` 的 `println!` 也被移动到内部作用域之外。注意示例 10-23 中的代码不能通过编译：
+
+文件名：src/main.rs
+
+```rust
+fn main() {
+    let string1 = String::from("long string is long");
+    let result;
+    {
+        let string2 = String::from("xyz");
+        result = longest(string1.as_str(), string2.as_str());
+    }
+    println!("The longest string is {}", result);
+}
+```
+
+示例 10-23：尝试在 `string2` 离开作用域之后使用 `result`
+
+如果尝试编译会出现如下错误：
+
+```console
+$ cargo run
+   Compiling chapter10 v0.1.0 (file:///projects/chapter10)
+error[E0597]: `string2` does not live long enough
+ --> src/main.rs:6:44
+  |
+6 |         result = longest(string1.as_str(), string2.as_str());
+  |                                            ^^^^^^^^^^^^^^^^ borrowed value does not live long enough
+7 |     }
+  |     - `string2` dropped here while still borrowed
+8 |     println!("The longest string is {}", result);
+  |                                          ------ borrow later used here
+
+For more information about this error, try `rustc --explain E0597`.
+error: could not compile `chapter10` due to previous error
+```
+
+错误表明为了保证 `println!` 中的 `result` 是有效的，`string2` 需要直到外部作用域结束都是有效的。Rust 知道这些是因为（`longest`）函数的参数和返回值都使用了相同的生命周期参数 `'a`。
+
+如果从人的角度读上述代码，我们可能会觉得这个代码是正确的。 `string1` 更长，因此 `result` 会包含指向 `string1` 的引用。因为 `string1` 尚未离开作用域，对于 `println!` 来说 `string1` 的引用仍然是有效的。然而，我们通过生命周期参数告诉 Rust 的是： **`longest` 函数返回的引用的生命周期应该与传入参数的生命周期中较短那个保持一致。**因此，借用检查器不允许示例 10-23 中的代码，因为它可能会存在无效的引用。
+
+请尝试更多采用不同的值和不同生命周期的引用作为 `longest` 函数的参数和返回值的实验。并在开始编译前猜想你的实验能否通过借用检查器，接着编译一下看看你的理解是否正确！
+
+指定生命周期参数的正确方式依赖函数实现的具体功能。例如，如果将 `longest` 函数的实现修改为总是返回第一个参数而不是最长的字符串 slice，就不需要为参数 `y` 指定一个生命周期。如下代码将能够编译：
+
+文件名：src/main.rs
+
+```rust
+fn longest<'a>(x: &'a str, y: &str) -> &'a str {
+    x
+}
+```
+
+我们为参数 `x` 和返回值指定了生命周期参数 `'a`，不过没有为参数 `y` 指定，因为 `y` 的生命周期与参数 `x`和返回值的生命周期没有任何关系。
+
+当从函数返回一个引用，返回值的生命周期参数需要与一个参数的生命周期参数相匹配。如果返回的引用 **没有** 指向任何一个参数，那么唯一的可能就是它指向一个函数内部创建的值。然而它将会是一个悬垂引用，因为它将会在函数结束时离开作用域。尝试考虑这个并不能编译的 `longest` 函数实现：
+
+文件名：src/main.rs
+
+```rust
+fn longest<'a>(x: &str, y: &str) -> &'a str {
+    let result = String::from("really long string");
+    result.as_str()
+}
+```
+
+即便我们为返回值指定了生命周期参数 `'a`，这个实现却编译失败了，因为返回值的生命周期与参数完全没有关联。这里是会出现的错误信息：
+
+```console
+$ cargo run
+   Compiling chapter10 v0.1.0 (file:///projects/chapter10)
+error[E0515]: cannot return reference to local variable `result`
+  --> src/main.rs:11:5
+   |
+11 |     result.as_str()
+   |     ^^^^^^^^^^^^^^^ returns a reference to data owned by the current function
+
+For more information about this error, try `rustc --explain E0515`.
+error: could not compile `chapter10` due to previous error
+```
+
+出现的问题是 `result` 在 `longest` 函数的结尾将离开作用域并被清理，而我们尝试从函数返回一个 `result` 的引用。无法指定生命周期参数来改变悬垂引用，而且 Rust 也不允许我们创建一个悬垂引用。在这种情况，最好的解决方案是返回一个有所有权的数据类型而不是一个引用，这样函数调用者就需要负责清理这个值了。
+
+综上，生命周期语法是用于将函数的多个参数与其返回值的生命周期进行关联的。一旦它们形成了某种关联，Rust 就有了足够的信息来允许内存安全的操作并阻止会产生悬垂指针亦或是违反内存安全的行为。
+
+##### 结构体定义的生命周期注解
+
+目前为止，我们定义的结构体全都包含拥有所有权的类型。也可以定义包含引用的结构体，不过这需要为结构体定义中的每一个引用添加生命周期注解。示例 10-24 中有一个存放了一个字符串 slice 的结构体 `ImportantExcerpt`。
+
+文件名：src/main.rs
+
+```rust
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+fn main() {
+    let novel = String::from("Call me Ishmael. Some years ago...");
+    let first_sentence = novel.split('.').next().expect("Could not find a '.'");
+    let i = ImportantExcerpt {
+        part: first_sentence,
+    };
+}
+```
+
+示例 10-24：一个存放引用的结构体，所以其定义需要生命周期注解
+
+这个结构体有唯一一个字段 `part`，它存放了一个字符串 slice，这是一个引用。类似于泛型参数类型，必须在结构体名称后面的尖括号中声明泛型生命周期参数，以便在结构体定义中使用生命周期参数。这个注解意味着 `ImportantExcerpt` 的实例不能比其 `part` 字段中的引用存在的更久。
+
+这里的 `main` 函数创建了一个 `ImportantExcerpt` 的实例，它存放了变量 `novel` 所拥有的 `String` 的第一个句子的引用。`novel` 的数据在 `ImportantExcerpt` 实例创建之前就存在。另外，直到 `ImportantExcerpt` 离开作用域之后 `novel` 都不会离开作用域，所以 `ImportantExcerpt` 实例中的引用是有效的。
+
+##### 生命周期省略
+
+现在我们已经知道了每一个引用都有一个生命周期，而且我们需要为那些使用了引用的函数或结构体指定生命周期。然而，第四章的示例 4-9 中有一个函数，如示例 10-25 所示，它没有生命周期注解却能编译成功：
+
+文件名：src/lib.rs
+
+```rust
+fn first_word(s: &str) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+
+    &s[..]
+}
+```
+
+示例 10-25：示例 4-9 定义了一个没有使用生命周期注解的函数，即便其参数和返回值都是引用
+
+这个函数没有生命周期注解却能编译是由于一些历史原因：在早期版本（pre-1.0）的 Rust 中，这的确是不能编译的。每一个引用都必须有明确的生命周期。那时的函数签名将会写成这样：
+
+```rust
+fn first_word<'a>(s: &'a str) -> &'a str {
+```
+
+在编写了很多 Rust 代码后，Rust 团队发现在特定情况下 Rust 程序员们总是重复地编写一模一样的生命周期注解。这些场景是可预测的并且遵循几个明确的模式。接着 Rust 团队就把这些模式编码进了 Rust 编译器中，如此借用检查器在这些情况下就能推断出生命周期而不再强制程序员显式的增加注解。
+
+这里我们提到一些 Rust 的历史是因为更多的明确的模式被合并和添加到编译器中是完全可能的。未来只会需要更少的生命周期注解。
+
+被编码进 Rust 引用分析的模式被称为 **生命周期省略规则**（*lifetime elision rules*）。这并不是需要程序员遵守的规则；这些规则是一系列特定的场景，此时编译器会考虑，如果代码符合这些场景，就无需明确指定生命周期。
+
+省略规则并不提供完整的推断：如果 Rust 在明确遵守这些规则的前提下变量的生命周期仍然是模棱两可的话，它不会猜测剩余引用的生命周期应该是什么。编译器会在可以通过增加生命周期注解来解决错误问题的地方给出一个错误提示，而不是进行推断或猜测。
+
+函数或方法的参数的生命周期被称为 **输入生命周期**（*input lifetimes*），而返回值的生命周期被称为 **输出生命周期**（*output lifetimes*）。
+
+编译器采用三条规则来判断引用何时不需要明确的注解。第一条规则适用于输入生命周期，后两条规则适用于输出生命周期。如果编译器检查完这三条规则后仍然存在没有计算出生命周期的引用，编译器将会停止并生成错误。这些规则适用于 `fn` 定义，以及 `impl` 块。
+
+第一条规则是编译器为每一个引用参数都分配一个生命周期参数。换句话说就是，函数有一个引用参数的就有一个生命周期参数：`fn foo<'a>(x: &'a i32)`，有两个引用参数的函数就有两个不同的生命周期参数，`fn foo<'a, 'b>(x: &'a i32, y: &'b i32)`，依此类推。
+
+第二条规则是如果只有一个输入生命周期参数，那么它被赋予所有输出生命周期参数：`fn foo<'a>(x: &'a i32) -> &'a i32`。
+
+第三条规则是如果方法有多个输入生命周期参数并且其中一个参数是 `&self` 或 `&mut self`，说明是个对象的方法 (method)(译者注：这里涉及 rust 的面向对象参见 17 章)，那么所有输出生命周期参数被赋予 `self` 的生命周期。第三条规则使得方法更容易读写，因为只需更少的符号。
+
+假设我们自己就是编译器。并应用这些规则来计算示例 10-25 中 `first_word` 函数签名中的引用的生命周期。开始时签名中的引用并没有关联任何生命周期：
+
+```rust
+fn first_word(s: &str) -> &str {
+```
+
+接着编译器应用第一条规则，也就是每个引用参数都有其自己的生命周期。我们像往常一样称之为 `'a`，所以现在签名看起来像这样：
+
+```rust
+fn first_word<'a>(s: &'a str) -> &str {
+```
+
+对于第二条规则，因为这里正好只有一个输入生命周期参数所以是适用的。第二条规则表明输入参数的生命周期将被赋予输出生命周期参数，所以现在签名看起来像这样：
+
+```rust
+fn first_word<'a>(s: &'a str) -> &'a str {
+```
+
+现在这个函数签名中的所有引用都有了生命周期，如此编译器可以继续它的分析而无须程序员标记这个函数签名中的生命周期。
+
+让我们再看看另一个例子，这次我们从示例 10-20 中没有生命周期参数的 `longest` 函数开始：
+
+```rust
+fn longest(x: &str, y: &str) -> &str {
+```
+
+再次假设我们自己就是编译器并应用第一条规则：每个引用参数都有其自己的生命周期。这次有两个参数，所以就有两个（不同的）生命周期：
+
+```rust
+fn longest<'a, 'b>(x: &'a str, y: &'b str) -> &str {
+```
+
+再来应用第二条规则，因为函数存在多个输入生命周期，它并不适用于这种情况。再来看第三条规则，它同样也不适用，这是因为没有 `self` 参数。应用了三个规则之后编译器还没有计算出返回值类型的生命周期。这就是在编译示例 10-20 的代码时会出现错误的原因：编译器使用所有已知的生命周期省略规则，仍不能计算出签名中所有引用的生命周期。
+
+因为第三条规则真正能够适用的就只有方法签名，现在就让我们看看那种情况中的生命周期，并看看为什么这条规则意味着我们经常不需要在方法签名中标注生命周期。
+
+##### 方法定义中的生命周期注解
+
+当为带有生命周期的结构体实现方法时，其语法依然类似示例 10-11 中展示的泛型类型参数的语法。我们在哪里声明和使用生命周期参数，取决于它们是与结构体字段相关还是与方法参数和返回值相关。
+
+（实现方法时）结构体字段的生命周期必须总是在 `impl` 关键字之后声明并在结构体名称之后被使用，因为这些生命周期是结构体类型的一部分。
+
+`impl` 块里的方法签名中，引用可能与结构体字段中的引用相关联，也可能是独立的。另外，生命周期省略规则也经常让我们无需在方法签名中使用生命周期注解。让我们看看一些使用示例 10-24 中定义的结构体 `ImportantExcerpt` 的例子。
+
+首先，这里有一个方法 `level`。其唯一的参数是 `self` 的引用，而且返回值只是一个 `i32`，并不引用任何值：
+
+```rust
+impl<'a> ImportantExcerpt<'a> {
+    fn level(&self) -> i32 {
+        3
+    }
+}
+```
+
+`impl` 之后和类型名称之后的生命周期参数是必要的，不过因为第一条生命周期规则我们并不必须标注 `self` 引用的生命周期。
+
+这里是一个适用于第三条生命周期省略规则的例子：
+
+```rust
+impl<'a> ImportantExcerpt<'a> {
+    fn announce_and_return_part(&self, announcement: &str) -> &str {
+        println!("Attention please: {}", announcement);
+        self.part
+    }
+}
+```
+
+这里有两个输入生命周期，所以 Rust 应用第一条生命周期省略规则并给予 `&self` 和 `announcement` 它们各自的生命周期。接着，因为其中一个参数是 `&self`，返回值类型被赋予了 `&self` 的生命周期，这样所有的生命周期都被计算出来了。
+
+##### 静态生命周期
+
+这里有一种特殊的生命周期值得讨论：`'static`，其生命周期**能够**存活于整个程序期间。所有的字符串字面值都拥有 `'static` 生命周期，我们也可以选择像下面这样标注出来：
+
+```rust
+let s: &'static str = "I have a static lifetime.";
+```
+
+这个字符串的文本被直接储存在程序的二进制文件中而这个文件总是可用的。因此所有的字符串字面值都是 `'static` 的。
+
+你可能在错误信息的帮助文本中见过使用 `'static` 生命周期的建议，不过将引用指定为 `'static` 之前，思考一下这个引用是否真的在整个程序的生命周期里都有效，以及你是否希望它存在得这么久。大部分情况中，推荐 `'static` 生命周期的错误信息都是尝试创建一个悬垂引用或者可用的生命周期不匹配的结果。在这种情况下的解决方案是修复这些问题而不是指定一个 `'static` 的生命周期。
+
+##### 结合泛型类型参数、trait bounds 和生命周期
+
+让我们简要的看一下在同一函数中指定泛型类型参数、trait bounds 和生命周期的语法！
+
+```rust
+use std::fmt::Display;
+
+fn longest_with_an_announcement<'a, T>(
+    x: &'a str,
+    y: &'a str,
+    ann: T,
+) -> &'a str
+where
+    T: Display,
+{
+    println!("Announcement! {}", ann);
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+```
+
+这个是示例 10-21 中那个返回两个字符串 slice 中较长者的 `longest` 函数，不过带有一个额外的参数 `ann`。`ann` 的类型是泛型 `T`，它可以被放入任何实现了 `where` 从句中指定的 `Display` trait 的类型。这个额外的参数会使用 `{}` 打印，这也就是为什么 `Display` trait bound 是必须的。因为生命周期也是泛型，所以生命周期参数 `'a` 和泛型类型参数 `T` 都位于函数名后的同一尖括号列表中。
+
+
+
 
 
 ### go
+
+#### 1.什么是泛型
+泛型程序设计（generic programming）是程序设计语言的一种风格或范式。泛型允许程序员在强类型程序设计语言中编写代码时使用一些以后才指定的类型，在实例化时作为参数指明这些类型。
+
+2022年3月15日，争议非常大但同时也备受期待的泛型终于伴随着Go1.18发布了。
+
+##### 1.1 举个栗子
+
+假设我们有一个功能函数
+
+```go
+func Add(a int, b int) int {
+    return a + b
+}
+```
+
+从代码上，可以很容易看出，这是计算两个数相加的函数。通过传入int类型的a和b，就可以返回a和b相加后的结果。
+
+##### 1.2 问题： 如果a和b是float类型呢？
+如果要解决上述问题，通常有两种解决方法：
+
+1 增加一个函数 func AddFloat(a float, b float) float
+
+```go
+func AddFloat(a, b float32) float32 {
+    return a + b
+}
+```
+
+2 使用反射 func Add(a interface{}, b interface{}) interface
+
+```go
+func Add(a interface{}, b interface{}) interface{} {
+    switch a.(type) {
+    case int:
+        return a.(int) + b.(int)
+    case float32:
+        return a.(float32) + b.(float32)
+    default:
+        return nil
+    }
+}
+```
+
+上述两个解决方案的缺点很明显。
+方法1：会引入新的函数，如果还有其他类型的a,b需要相加的话，就需要再增加更多的函数。
+方法2：使用了反射，性能会有影响
+
+##### 1.3 Golang新特性
+如果不想增加一个新的功能逻辑一模一样的函数，同时也不想使用有性能问题的反射的话。
+
+```go
+func Add[T int | float32 | float64](a, b T) T {
+    return a + b
+}
+
+func main() {
+    fmt.Println(Add(1, 2))
+    fmt.Println(Add(1.1, 2.1))
+}
+
+
+```
+
+##### 1.4 ChatGPT4对泛型的回答
+在Go语言中，泛型是一种编程特性，允许你编写更通用、可重用的代码。泛型可以让你编写一个函数或类型，而不是针对特定的数据类型。这样，你可以使用相同的函数或类型处理不同的数据类型，而无需为每种数据类型编写重复的代码。
+
+Go 1.18版本引入了泛型特性，主要包括以下几个方面：
+
+类型参数：类型参数是泛型函数或类型的一个占位符，表示一个未知的类型。类型参数用方括号[]括起来，放在函数名或类型名之后。例如，func MyFunc[T any](a T) {}中的T就是一个类型参数。
+约束：约束是一种限制类型参数的方式，用于指定类型参数必须满足的条件。约束可以是接口类型或其他具有类型参数的类型。例如，func MyFunc[T io.Reader](a T) {}中的io.Reader就是一个约束，表示类型参数T必须实现io.Reader接口。
+预定义约束：Go 1.18提供了一些预定义的约束，用于表示常见的类型集合。例如，any约束表示任何类型，comparable约束表示可比较的类型（支持==和!=操作符）。
+泛型函数：泛型函数是一种使用类型参数的函数，可以处理不同类型的参数。泛型函数的定义和普通函数类似，只是在函数名后面添加了类型参数列表。例如，func MyFunc[T any](a, b T) T {}。
+泛型类型：泛型类型是一种使用类型参数的类型，可以表示不同类型的数据结构。泛型类型的定义和普通类型类似，只是在类型名后面添加了类型参数列表。例如，type MySlice[T any] []T。
+
+#### 2.泛型的基本特性
+
+##### 2.1 类型参数
+
+通用代码是使用开发者称为类型参数的抽象数据类型编写的。调用泛型方法时，类型参数将替换为类型参数。
+
+<img src="img/image-20240325235224600.png" alt="image-20240325235224600" style="zoom:50%;" />
+
+类型参数列表出现在常规参数之前。为了区分类型参数列表和常规参数列表，类型参数列表使用方括号[]而不是圆括号()。正如常规参数具有类型一样，类型参数也具有元类型，也称为约束。
+
+```go
+func Print[T any](s T) {
+    fmt.Println(s)
+}
+```
+
+调用泛型方法时：
+
+```go
+Print(1.2)
+Print("123")
+Print[[]int]([]int{1, 2, 3})
+Print([]int{1, 2, 3})
+
+// 输出结果
+// 1.2
+// 123
+// [1 2 3]
+// [1 2 3]
+```
+
+调用泛型函数的时候，可以指定约束调用，也可以直接调用。
+
+约束（Constraints）
+
+通常，所有泛型代码都希望类型参数满足某些要求。这些要求被称为约束 。
+
+看这一段代码：
+
+```go
+// any并没有约束后续计算的类型
+func add[T any](a, b T) T {
+    return a + b // 编译错误
+}
+
+```
+
+上述代码中，any约束允许任何类型作为类型参数，并且只允许函数使用任何类型所允许的操作。其接口类型是空接口：interface{}, a和b类型都是T，并且T是any类型的。 因此a和b是不能直接相加操作的。
+
+因此，需要设置可相加的类型约束。
+
+```go
+// T类型的约束被设置成 int | float32 | float64
+func Add[T int | float32 | float64](a, b T) T {
+    return a + b
+}
+```
+
+上述代码中将T的类型约束，设置成为int | float32 | float64, 而这三个类型都是可以相加操作的，因此，编译不会出现错误。
+
+##### 2.2 类型集
+
+类型集表示一堆类型的集合，用来在泛型函数的声明中约束类型参数的范围。上面示例中的any是interface{}的别名，表示所有类型的集合，也就是不限制类型。上述的代码示例中[T int | float32 | float64]只列举了三个类型，如果需要支持更多的类型，就可以使用类型集的特性。
+
+```go
+// 定义类型集 
+type number interface {
+    int | int32 | uint32 | int64 | uint64 | float32 | float64
+}
+
+// 约束T可为number类型集中的任一元素
+func add[T number](a, b T) T {
+    return a + b
+}
+```
+
+##### 2.3 约束元素
+
+1. 任意类型约束元素
+允许列出任何类型，而不仅仅是接口类型。例：
+
+```go
+// 其中 int 为基础类型
+type Integer  interface { int } 
+```
+
+2. 近似约束元素
+在日常coding中，可能会有很多的类型别名，例如：
+
+```go
+type (
+    orderStatus   int32
+    sendStatus    int32
+    receiveStatus int32
+    ...
+)
+```
+
+Go1.18 中扩展了近似约束元素（Approximation constraint element）这个概念，以上述例子来说，即：基础类型为int32的类型。语法表现为：
+
+```go
+type AnyStatus interface{ ~int32 }
+```
+
+如果我们需要对上述自定义的status做一个翻译，就可以使用以下的方式：
+
+```go
+// 使用定义的类型集
+func translateStatus[T AnyStatus](status T) string {
+    switch status {
+    case 1:
+        return "成功"
+    case -1:
+        return "失败"
+    default:
+        return "未知"
+    }
+}
+
+// 或者不使用类型集
+func translateStatus[T ~int32](status T) string {
+    switch status {
+    case 1:
+        return "成功"
+    case -1:
+        return "失败"
+    default:
+        return "未知"
+    }
+}
+
+
+```
+
+3. 联合约束元素
+联合元素，写成一系列由竖线 ( |) 分隔的约束元素。例如：int | float32或~int8 | ~int16 | ~int32 | ~int64。并集元素的类型集是序列中每个元素的类型集的并集。联合中列出的元素必须全部不同。
+这里给所有有符号的数字类型添加一个通用的求和方法coding如下：
+
+```go
+type Integer interface {
+    ~int | ~int8 | ~int16 | ~int32 | ~int64
+}
+
+func addInteger[T Integer](a, b T) T {
+    return a + b
+}
+```
+
+4. 约束中的可比类型
+Go1.18 中内置了一个类型约束 comparable约束，comparable约束的类型集是所有可比较类型的集合。这允许使用该类型参数==的!=值。
+
+```go
+func inSlice[T comparable](s []T, x T) int {
+    for i, v := range s {
+        if v == x {
+            return i
+        }
+    }
+    return -1
+}
+```
+
+```go
+fmt.Println(inSlice([]string{"a", "b", "c"}, "c"))
+// 执行结果：
+// 2
+```
+
+##### 2.4 类型推断
+在许多情况下，可以使用类型推断来避免必须显式写出部分或全部类型参数。可以对函数调用使用的参数类型推断从非类型参数的类型中推断出类型参数。开发者可以使用约束类型推断从已知类型参数中推断出未知类型参数。
+
+```go
+func Print[T any](s T) {
+    fmt.Println(s)
+}
+
+s := []int{1, 2, 3}
+
+// 显示指定参数类型
+Print[[]int](s)
+// 推断参数类型
+Print(s)
+```
+
+
+
+Tips:
+如果在没有指定所有类型参数的情况下使用泛型函数或类型，则如果无法推断出任何未指定的类型参数，则会出现错误。
+
+##### 2.5 类型约束的两种写法
+
+```go
+// 推荐
+type Student1[T int | string] struct {
+    Name string
+    Data []T
+}
+
+type Student2[T []int | []string] struct {
+    Name string
+    Data T
+}
+```
+
+##### 2.6 匿名函数不支持泛型
+在Go中我们经常会使用匿名函数，如：
+
+```go
+fn := func(a, b int) int {
+    return a + b 
+}  // 定义了一个匿名函数并赋值给 fn 
+
+fmt.Println(fn(1, 2)) // 输出: 3
+```
+
+那么Go支不支持匿名泛型函数呢？答案是不能——匿名函数不能自己定义类型形
+
+```go
+// 错误，匿名函数不能自己定义类型实参
+fn := func[T int | float32](a, b T) T {
+    return a + b
+} 
+
+fmt.Println(fn(1, 2))
+
+```
+
+但是匿名函数可以使用别处定义好的类型实参，如：
+
+```go
+func MyFunc[T int | float32 | float64](a, b T) {
+    
+    // 匿名函数可使用已经定义好的类型形参
+    fn2 := func(i T, j T) T {
+        return i%j
+    }
+
+    fn2(a, b)
+}
+```
+
+##### 2.7 不支持泛型方法
+目前Go的方法并不支持泛型，例如：
+
+```go
+type Person struct{}
+// 不支持泛型方法
+func (p *Person) Say[T int | string](s T) {
+    fmt.Println(s)
+}
+```
+
+但是， 我们可以通过定义泛型类型来实现：
+
+```go
+type Person[T int | string] struct{}
+
+func (p *Person[T]) Say(s T) {
+    fmt.Println(s)
+}
+```
+
+执行：
+
+```go
+func main() {
+    var p1 Person[int]
+    p1.Say(1)
+
+    var p2 Person[string]
+    p2.Say("hello")
+}
+
+// 结果：
+// 1
+// hello
+```
+
+##### 2.8 泛型类型的嵌套
+泛型和普通的类型一样，可以互相嵌套定义出更加复杂的新类型，如下：
+
+```go
+// 先定义个泛型类型 Slice[T]
+type Slice[T int|string|float32|float64] []T
+
+// ✗ 错误。泛型类型Slice[T]的类型约束中不包含uint, uint8
+type UintSlice[T uint|uint8] Slice[T]  
+
+// ✓ 正确。基于泛型类型Slice[T]定义的新泛型类型 IntAndStringSlice[T]
+type IntAndStringSlice[T int|string] Slice[T]  
+// ✓ 正确 基于IntAndStringSlice[T]套娃定义出的新泛型类型
+type IntSlice[T int] IntAndStringSlice[T] 
+
+// 在map中套一个泛型类型Slice[T]
+type SMap[T int|string] map[string]Slice[T]
+// 在map中套Slice[T]的另一种写法
+type SMap2[T Slice[int] | Slice[string]] map[string]T
+```
+
+示例：
+
+```go
+// sets 定义泛型集合
+type sets[T int | string | float32] []T
+type hobby[T string] sets[T]
+type score[T int | float32] map[string]sets[T]
+
+// Student 定义学生类
+type Student struct {
+    Name  string
+    Hobby hobby[string]
+    Score score[int]
+    ExtraScore score[float32]
+}
+
+func main() {
+    hobbies := sets[string]{"football", "basketball", "golf"}
+    mathScore := sets[int]{100, 99, 98}
+    englishScore := sets[int]{95, 92, 93}
+
+    s := &Student{
+        Name:  "zhangSan",
+        Hobby: hobby[string](hobbies),
+        Score: score[int]{
+            "math":    mathScore,
+            "english": englishScore,
+        },
+        ExtraScore: score[float32]{
+            "physical": sets[float32]{9.9, 9.7, 9.4},
+        },
+    }
+    fmt.Println(s)
+}
+
+// 结果：
+// &{zhangSan [football basketball golf] map[english:[95 92 93] math:[100 99 98]] map[physical:[9.9 9.7 9.4]]}
+```
+
+#### 3.泛型实践
+
+##### 3.1 实现工具函数
+虽然标准库里面已经提供了大量的工具函数，但是这些工具函数都没有使用泛型实现，为了提高使用体验，我们可以使用泛型进行实现。
+
+```go
+func MaxInt(a, b int) int {
+    if a > b {
+        return a
+    }
+    return b
+}
+
+func MaxInt64(a, b int64) int64 {
+    if a > b {
+        return a
+    }
+    return b
+}
+
+// ...其他类型
+```
+
+使用泛型实现：
+
+```go
+func Max[T constraints.Ordered](a, b T) T {
+    if a > b {
+        return a
+    }
+    return b
+}
+```
+
+其中constraints.Ordered表示可排序类型，也就是可以使用三路运算符的类型[>, =, <]，包含了所有数值类型和string。可以通过go get golang.org/x/exp引入。
+
+##### 3.2 实现数据结构
+简单的实现一个基于泛型的队列。
+
+```go
+// Queue - 队列
+type Queue[T any] struct {
+    items []T
+}
+
+// Put 将数据放入队列尾部
+func (q *Queue[T]) Put(value T) {
+    q.items = append(q.items, value)
+}
+
+// Pop 从队列头部取出并从头部删除对应数据
+func (q *Queue[T]) Pop() (T, bool) {
+    var value T
+    if len(q.items) == 0 {
+        return value, true
+    }
+
+    value = q.items[0]
+    q.items = q.items[1:]
+    return value, len(q.items) == 0
+}
+
+// Size 队列大小
+func (q Queue[T]) Size() int {
+    return len(q.items)
+}
+
+```
+
+队列的使用：
+
+```go
+
+type Stu struct {
+    Name string
+}
+
+func main() {
+    var q1 Queue[int]    // 可存放int类型数据的队列
+    q1.Put(1)
+    q1.Put(2)
+    q1.Put(3)
+    fmt.Println(q1.Pop())
+    fmt.Println(q1.Pop())
+    fmt.Println(q1.Pop())
+
+    var q2 Queue[string]    // 可存放string类型数据的队列
+    q2.Put("A")
+    q2.Put("B")
+    q2.Put("C")
+    fmt.Println(q2.Pop())
+    fmt.Println(q2.Pop())
+    fmt.Println(q2.Pop())
+
+    var q3 Queue[Stu]       // 可存放Stu类型数据的队列
+    q3.Put(Stu{Name: "zhangSan"})
+    q3.Put(Stu{Name: "liSi"})
+    q3.Put(Stu{Name: "wangWu"})
+    fmt.Println(q3.Pop())
+    fmt.Println(q3.Pop())
+    fmt.Println(q3.Pop())
+}
+
+// 结果：
+// 1 false
+// 2 false
+// 3 true
+
+// A false
+// B false
+// C true
+
+// {zhangSan} false
+// {liSi} false
+// {wangWu} true
+
+```
+
+##### 3.3 实现多类型缓存
+
+实现一个Map，可以缓存不同类型的数据
+
+```go
+var (
+    keyName = "name"
+    keyAge  = "age"
+    cache   = make(map[string][]any)
+)
+
+func TestCache(t *testing.T) {
+    cache[keyName] = append(cache[keyName], "zhangSan")
+    cache[keyName] = append(cache[keyName], "liSi")
+    cache[keyName] = append(cache[keyName], "wangWu")
+
+    cache[keyAge] = append(cache[keyAge], 18)
+    cache[keyAge] = append(cache[keyAge], 19)
+    cache[keyAge] = append(cache[keyAge], 20)
+
+    fmt.Println(cache)
+}
+
+```
+
+执行结果：
+
+```go
+=== RUN   TestCache
+map[age:[18 19 20] name:[zhangSan liSi wangWu]]
+--- PASS: TestCache (0.00s)
+PASS
+```
+
+如果上述示例中，在keyName中追加的不是字符串而是数字，是否会报错？
+
+```go
+var (
+    keyData = "data"
+    cache   = make(map[string][]any)
+)
+
+func TestCache(t *testing.T) {
+    cache[keyData] = append(cache[keyData], "zhangSan")
+    cache[keyData] = append(cache[keyData], 18)
+    cache[keyData] = append(cache[keyData], 99.5)
+    cache[keyData] = append(cache[keyData], map[string]string{"Country": "China"})
+
+    fmt.Println(cache)
+}
+```
+
+执行结果：
+
+```go
+=== RUN   TestCache
+map[data:[zhangSan 18 99.5 map[Country:China]]]
+--- PASS: TestCache (0.00s)
+PASS
+```
+
+#### 4.接口的定义
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1302,11 +2231,15 @@ fn main() {
 
 
 
+# 数据结构与算法
 
 
 
 
 
+
+
+# 高级原理
 
 
 
