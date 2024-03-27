@@ -2201,33 +2201,848 @@ map[data:[zhangSan 18 99.5 map[Country:China]]]
 PASS
 ```
 
-#### 4.接口的定义
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### Java
+
+#### 1 泛型概述
+
+##### 1.1 前言
+Java 推出泛型以前，程序员可以构建一个存储任意的数据类型的 Object 集合，而在使用该集合的过程中，需要程序员明确知道存储元素的数据类型，否则很容易引发 ClassCastException 异常。JDK 1.5 后 Java 引入泛型特性，泛型提供了编译时类型安全监测机制，允许我们在编译时检测到非法的类型数据结构。
+
+##### 1.2 泛型的定义
+泛型编程：编写与类型无关的通用代码，是代码复用的一种手段。泛型在面向对象编程及各种设计模式中有这广泛的应用，在 Java 和 C# 等语言中都有很重要的地位。
+
+泛型（Generics）的本质是参数化类型或者参数化多态的应用，即把所操作的具体的类型参数，指定为一种特殊参数。
+
+参数化类型的理解：举例：如方法 public void fun（int a，long b）{}，其参数列表的形参类型有 int、long，现将具体的类型参数进行参数化，如用 N、E 表示一个类型变量（描述具体类型参数的变量）则有public <N, E> void fun（N a，E b）{}，此时类型参数被定义成参数的形式。
+通过泛型（如类型变量 E、K、V、N...）来控制类型参数（如 int、String...），然后泛型在使用时在传入具体的类型参数。泛型可以用在类、接口和方法中，通过指定不同的类型变量，从而构成不同的泛型结构（如泛型接口，泛型类，泛型方法）。
+类型变量(Type Parameter) 如 T、K、V 等。
+
+类型参数尚未具体化的类型变量，如 List<E> 中，E 就是类型变量。
+类型参数(Type Arguement) 如 String、Integer 等。
+
+类型变量已经具体化的类型参数，如 List<String>中，String就是类型参数。
+
+##### 1.3 Java 泛型的作用
+
+> Java层面：数据存储安全问题：如类型参数，防止不同类型的数据，放入相同的类型里面。
+>
+> 生活层面：物品存储安全问题：如药品标签，防止不同标签的药品，放入相同的标签里面。
+
+![image-20240326233159327](img/image-20240326233159327.png)
+
+1. 数据类型安全检查（编译期）
+
+使用泛型后，能让编译器在编译期间，对传入的类型参数进行检查，判断容器操作是否合法。将运行期的 ClassCastException 等错误，转移到编译时发现。
+
+2. 消除类型强制转换（编译期、手动）
+
+在 JDK1.5 之前，Java 容器对于存入数据是通过将数据类型向上转型为 Object 类型来实现的，因此取出来的时候需要手动的强制转换，麻烦且不安全。加入泛型后，强制转换都是自动的和隐式的，提高代码的重用率、简洁度和优雅度。
+
+3. 复用代码（复用思想）
+
+如果代码中存在对大量的通用类型（如 Object 类或 Compare 接口）的强制类型转换，会产生大量的重复代码，泛型能很好的解决这个问题。使用泛型，通过继承实现通用泛型父类的方式，以达到代码复用的效果。
+
+#### 2 Java泛型的特点
+##### 2.1  类型擦除
+Java 选择的泛型实现方式叫做 “ 类型擦除式泛型 ”(Type Erasure Generics)。
+
+类型擦除的过程：
+
+编译期：Java 的泛型是在编译期实现的，对传入的类型参数进行安全检查。
+编译后：编译后的字节码文件中没有泛型，源代码中全部的泛型被替换为裸类型，并且在必要地方插入强制转换的代码。
+泛型技术实际上是Java 语言的一颗语法糖，其在Java 语言中实现方法称为类型擦除，是一种"伪泛型"策略。
+
+语法糖：计算机术语，指在语言中添加某种语法，这种语法对语言的功能没有影响，但是更方便程序员使用。一般语法糖能够简练语言表达的复杂性、增加程序可读性，减少代码出错。
+
+![image-20240326233709809](img/image-20240326233709809.png)
+
+如上述源代码中定义 List<String> 和 List<Integer> 类型，其类的信息相同，在编译后的字节码文件中，通过反射，我们确定这两个字段的字段类型都是 List。实际上JVM看到的只是 List，而由泛型附加的类型信息对JVM是看不到的，将一段有泛型信息的 Java 源代码编译成 Class 文件后，对其反编译形成新源代码，就会发现泛型都不见了。
+
+##### 2.2  类型擦除原则
+删除泛型说明：删除菱形语法 <> 及其包围的类型参数的声明部分。
+类型参数替换：依据类型参数的上下界，推断并替换所有的类型参数为原始生态类型（根据类型参数是否有限制通配符或上下界限定判断（1）无时：则替换为 Object（2）有时：根据子类替换原则，取类型参数的最左边的限定类型，即父类。
+保证类型安全：类型擦除后，在必要的地方插入强制类型转换的代码。
+保证泛型多态：类型擦除后，自动产生“ 桥接方法 ”以保证代码具有泛型的“ 多态性 ”。
+类、接口、方法中的类型擦除原则
+
+类型参数无限制时
+类型擦除中，类型参数直接被替换为 Object。
+
+形如 <T> 和 <?> ，其类型参数都被替换为 Object。
+
+类型参数有限制时
+类型擦除中，类型参数存在限制（上下界）时，类型参数替换为类型受限的上界或者下界。
+
+形如 <T extends Number> 的类型参数，被替换为 Number，<? super Number> 被替换为 Object。
+
+##### 2.3  类型擦除带来的影响
+泛型与重载1
+
+```java
+class Demo{ // 编译报错
+    public static Void method(List<String> stringList){}
+    public static Void method(List<Integer> integerList){}
+}
+```
+
+上述代码是不能被编译的，因为参数 List＜Integer＞和 List＜String＞经过编译之后，其泛型信息经过类型擦除后，都变成了相同的原生类型 List。类型擦除导致这两种方法的特征签名变得一模一样，因而编译不通过。
+
+泛型与重载2
+
+class Demo{ // 编译通过
+	public static String method(List<String> stringList){ return "";}
+	public static Integer method(List<Integer> integerList){ return 0;}
+}
+虽然方法的返回值不参与方法的特征签名，即不参与重载选择（相同的特征签名导致无法重载），但是对于 Class 文件，因为返回值不同，使得方法的描述符不同，因而可以合法的存在于同一个 Class文件内。（如引入新的属性 Signature 等，解决伴随泛型而来的参数类型的识别问题）。
+
+上述源代码在 IDEA 编辑器中是不通过的，但是在 JDK 编译器是可以，因为 JDK 编译器是根据方法返回值 + 方法名 + 参数列表来描述每一个方法的。
+
+2.4  弱记忆
+为了确保泛型的兼容性，JVM 除了擦除，在 Class文件中还是保留了一些泛型信息，体现出类文件对泛型的弱记忆。
+
+比如 Signature 属性，就是其中最重要的一项属性，它的作用就是存储一个在字节码层面的方法的特征签名，这个属性中保存的参数类型并不是原生类型，而是包括了参数化类型的信息。从 Signature 属性可以看出，类型擦除法中所谓的擦除，仅仅是对方法的 Code 属性中的字节码进行擦除，实际上元数据中还是保留了泛型信息，这也是我们能通过反射手段取得参数化类型的根本依据。
+
+#### 3 泛型的使用
+
+常用泛型变量名称，见名知意（注意：本质没什么区别，类型变量可以随意起名）。
+
+| 变量类型 | 作用                                                        |
+| -------- | ----------------------------------------------------------- |
+| E        | 元素（Element），主要由 Java 集合(Collections)框架使用      |
+| K V      | 键（Key）值（Value），主要用于表示 Java 键值中的 Key  Value |
+| N        | 数字（Number），主要用于表示数字                            |
+| T S U V  | 表示通用型参数                                              |
+| ?        | 表示不确定的 Java 类型                                      |
+
+##### 3.1 泛型类
+泛型类型用于类的定义中，被称为泛型类。通过泛型可以完成对一组类的操作对外开放相同的接口。
+
+使用语法：类名 <类型变量> 对象名 = new 类名<类型变量>();
+
+JDK 1.7 以后，类名 <类型变量，类型变量 ...> 对象名 = new 类名<>();
+
+###### 3.1.1 泛型类的使用
+普通泛型类 VS 多元泛型类【要点：类型变量的个数】
+
+```java
+// 普通泛型类
+class Person<T>{	// T 是type的简称【实例化时，必须指定T的具体类型】
+    private T name;	          // 成员变量：属性key的类型T由外部指定  
+    public Person(T name) {   // 构造方法：形参key的类型T由外部指定
+        this.name = name;
+    }
+    public T getName(){       // 普通get方法：返回值类型T由外部指定
+        return name;
+    }
+}
+// 多元泛型类
+class Person<K,V>{		// 指定了多个泛型类型  
+    public K name;		// 类型变量 K 的类型，由外部决定  
+    public V age;		// 类型变量 V 的类型，由外部决定 
+    public Person(K name, V age){  
+        this.name = name;
+        this.age = age;
+    }  
+} 
+```
+
+注意点：
+
+此处的 getKey() 方法不是泛型方法，仅仅是普通方法的返回值是泛型，参阅泛型方法的定义。
+
+定义的泛型类（接口、方法同理）就一定要传入泛型类型实参么？【答案：NO
+
+使用泛型时传入泛型实参：编译期会对数据类型做安全性检查，发挥数据类型的限制作用。
+使用泛型时不传泛型实参：编译期不对数据类型做安全性检查，数据类型可以为任何类型（默认类型是 Object）。
+泛型的类型参数只能是类类型，不能是简单类型。
+
+###### 3.1.2 泛型类派生子类注意点
+
+1. 实现子类**是泛型类时**：子类的泛型变量要和父类的一致【对于多元泛型类，至少要包含父类的全部泛型变量】。
+2. 实现子类**不是泛型类时**：父类必须指明具体的数据类型。
+
+```java
+// 续用上例的 Person 父类
+// 1. 实现泛型接口的类，是泛型类时：
+//    多元泛型类的类型变量集合A ={T、E、K}，接口的类型变量有B = {T}，集合 A 至少包含 B。
+class Child<T,E,K> extends Person<T>{
+     // ...
+}
+// 2. 实现泛型接口的类，不是泛型类时：
+//    需要明确实现泛型接口的数据类型。
+class Child implements Person<String>{
+     // ...
+}
+```
+
+##### 3.2 泛型接口
+
+泛型类型用于接口的定义中，被称为泛型接口。【泛型接口与泛型类的定义和使用基本相同】。
+
+使用语法：接口名 <类型变量，类型变量 ...> 对象名 = new 接口名<>();
+
+###### 3.2.1 泛型接口的使用
+
+```java
+interface Person<T>{	    // 在接口上定义泛型  
+    public T getName();	    // 定义抽象方法，抽象方法的返回值就是泛型类型  
+}  
+class PersonImpl<T> implements Person<T>{	// 定义泛型接口的子类  
+    private T name ;             	// 成员变量：属性name的类型T由外部指定  
+    public PersonImpl(T name){     	// 构造方法：形参name的类型T由外部指定 
+        this.name = name; ;    
+    }  
+    public void setName(T name){  	// 普通set方法，形参name的类型T由外部指定
+        this.name = name ;  
+    }  
+    public T getName(){  			// 普通get方法，返回值的类型T由外部指定
+        return this.name;  
+    }  
+} 
+public class GenericsDemo{  
+    public static void main(String arsg[]){  
+        Person<String> p = new PersonImpl<String>("刘德华"); // 声明接口对象   
+        System.out.println("name = " + p.getName());		 // ？ name = 刘德华
+    }  
+}  
+```
+
+###### 3.2.2 泛型接口实现类注意点
+
+1. 实现接口的类**是泛型类时**：泛型类的泛型变量要和接口类的一致【对于多元泛型类，至少要包含接口的全部泛型变量】。
+2. 实现接口的类**不是泛型类时**：泛型接口必须指明具体的数据类型。
+
+```java
+// 续用上例的 Person 接口
+// 1. 实现泛型接口的类，是泛型类时：
+//    多元泛型类的类型变量集合A ={T、E、K}，接口的类型变量有B = {T}，集合 A 至少包含 B。
+class PersonImpl<T,E,K> implements Person<T>{
+     // ...
+}
+// 2. 实现泛型接口的类，不是泛型类时：
+//    需要明确实现泛型接口的数据类型。
+class PersonImpl implements Person<String>{
+     // ...
+}
+```
+
+##### 3.3 泛型通配符
+
+###### 3.3.1 前言案例
+
+```java
+// 1. 定义泛型类  2. 定义普通方法，参数为泛型 T 由外部指定
+class Person<T>{ 
+    public T age;
+    public Person(T age) { 
+        this.age = age;
+    }
+}
+public void showName(Person<Number> p){
+    System.out.println("p.age = " + p.age);
+}
+// 3. 构造2个 Generic 的对象  4. 方法调用
+Generic<Integer> ageInteger = new Generic<Integer>(123);
+Generic<Number> ageNumber = new Generic<Number>(456);
+ 
+showName(ageNumber);	// 正常
+showName(ageInteger);	// 报错：Person<Integer>不能被看作为Person<Number>的子类
+// -------------------------------------------------------------
+// 传统解决办法，新定义一个方法，接收参数为泛型类Person<Integer>
+// 确实，但是单单这重复的代码，叔可忍婶可忍呀！
+public void showName(Person<Integer> p){
+    System.out.println("p.age = " + p.age);
+}
+```
+
+
+
+通过上面这个小案例，泛型通配符横空出世！！！
+
+###### 3.3.2 什么是类型通配符
+在现实编码中，希望泛型能够处理某一类型范围内的类型参数，比如某个泛型类及它的子类（或泛型类及它的父类），为此 Java 引入了泛型通配符这个概念。
+
+<?> 无限制通配符。
+
+<? extends E> extends 关键字声明类型的上界，参数化类型可以是 E 或者 E 的子类类型。
+
+<? super E> super 关键字声明类型的下界，参数化类型可以是 E 或者 E 的父类类型。
+
+注意：？类型通配符，一般是代替具体的类型实参【重要的话，自己读三遍哦】
+
+类型通配符用 ？代替，且 ？是类型实参。此处的 ？和 Number、String、Integer 一样，都是一种实际的类型。当具体类型不确定时候，用 ？ 代替具体类型实参。
+
+```java
+// 接收参数的泛型类Person，其类型实参不具体指定，用？代替。完美解决
+public void showName(Person<?> p){
+    System.out.println("p.age = " + p.age);
+}
+```
+
+##### 3.4 泛型上下界
+
+Java 选择的泛型实现是类型擦除，类型擦除存在隐含的转换问题，解决办法就是控制参数类型的转换边界。
+
+**泛型****上届**
+
+语法：类/接口 <? extends 实参类型T>。
+
+泛型的上界是实参类型 T，？只能接受 T 类型及其子类。
+
+```java
+// 上界是Number类，？只能接受Number类型及其子类（Integer，Double...都是Number的子类）
+class Generic<T extends Number>{  	
+    public T number;        		// 定义泛型变量
+    public Generic(T number){
+        this.number = number;
+    }
+}
+public class GenericsDemo{
+    public static void main(String args[]){
+        Generic<Integer> i1 = new Generic<>(1);		// Integer的泛型对象
+        Generic<Double> i2 = new Generic<>(1.1);	// Double的泛型对象
+        Generic<Long> i3 = new Generic<>(1L);		// Long的泛型对象
+    }
+}
+```
+
+
+
+**泛型****下届**
+
+语法：类/接口 <? super 实参类型T>。
+
+泛型的下届是实参类型 T，？只能接受 T 类型及其父类。
+
+```java
+class Generic<T>{
+    public T name;
+    public Generic(T name){
+        this.name = name;
+    }
+}
+public class GenericsDemo{
+    // 下界是String类，？只能接收String类型及其父类（String类的父类只有Object类）
+    public static void fun(Generic<? super String> temp){    
+        System.out.print(temp + ", ") ;
+    }
+    public static void main(String args[]){
+        Info<String> i1 = new Generic<String>("happy") ;    	// String的泛型对象
+        Info<Object> i2 = new Generic<Object>(new Object()) ;	// Object的泛型对象
+        fun(i1) ;
+        fun(i2) ;
+    }
+}
+```
+
+
+
+**泛型多重限制**
+
+类型参数可以多重限定而通配符不行，使用 & 符，设置多重边界。
+
+```java
+interface  A {}
+interface B {}
+class MultiLimit implements A, B {
+    public <T extends A & B> void method(T t) {
+        // ...
+    }
+}
+```
+
+##### 3.5 泛型方法
+
+###### 3.5.1 泛型方法与可变参数
+
+泛型类型用于方法的定义中，被称为泛型方法。使用语法：
+
+```java
+// 类型变量 T，可以随便写为任意标识，如 T、E、K、V...
+修饰符 <T,E, ...> 返回值类型 方法名(形参列表) { 
+	方法体... 
+}
+// 泛型方法
+public <T> void getName(){
+}
+// 泛型方法【可变参数
+public <T> void getName(T... t){
+}
+// 不是泛型方法【仅返回值和参数列表使用了泛型，其单独出现也不是
+public T getName(T t){
+}
+```
+
+只有在修饰符 与 返回值中间，声明了<类型变量...>，该方法才是泛型方法，才能在方法中使用泛型类型 T。否则，只是普通方法使用了泛型（返回值是泛型，或者参数是泛型）。
+
+可变参数，即参数列表使用了如 （T... t） 这样的语法。
+
+###### 3.5.2 泛型类中的静态泛型方法
+
+注意点：静态方法无法访问类上定义的泛型；如果静态方法操作的引用数据类型不确定的时候，必须要将泛型定义在方法上。
+
+```java
+// 泛型类
+class StaticGenerator<T> {
+    // 泛型类内部，定义普通方法/泛型方法
+    public void show(T t){}				// 正确
+    public <T> void show(T t){}			// 正确
+    // 泛型类内部，定义静态方法，使用泛型
+	public static void show(T t){}		// 报错
+    // 泛型类内部，定义泛型静态方法，使用泛型
+    public static <T> void show(T t){}	// 正确
+}
+```
+
+静态方法设计的初衷是无须实例化，直接通过“类名.方法名”来调用的方法。
+
+泛型类内部，要使用带类型变量的非泛型方法，要先通过实例化类，才能确定类型变量具体指定的类型参数，因此不能直接通过“类名.方法名”的方式调用静态方法，否则不能确定具体的类型参数。与静态方法的设计初衷相违背。
+泛型类内部，要使用带类型变量的泛型方法，会在类调用方法时同时确定具体的类型参数（泛型方法声时已定义），因此不用创建类实例，直接通过“类名.方法名”的方式调用静态方法。符合静态方法的设计初衷。
+泛型类中，静态方法要使用泛型的话，必须将静态方法定义成泛型方法 。
+
+泛型方法能使方法独立于类而产生变化。以下是一个基本的指导原则：
+
+无论何时，如果你能做到，你就该尽量使用泛型方法。
+如果使用泛型方法将整个类泛型化，那么就应该使用泛型方法。另外对于一个 static 的方法而已，无法访问泛型类型的参数。所以如果 static 方法要使用泛型能力，就必须使其成为泛型方法。
+
+##### 3.6 泛型数组
+
+###### 3.6.1 泛型类型不能实例化
+
+> **不能直接创建带泛型的数组对象**
+>
+> **但是可以声明带泛型的数组引用**
+
+```java
+// 不能创建：不能直接创建带泛型的数组对象
+List<String>[] ls1 = new ArrayList<String>[10]; 	//编译错误，非法创建 
+List<?>[]      ls3 = new ArrayList<String>[10]; 	//编译错误，非法创建
+List<String>[] ls2 = new ArrayList<?>[10]; 			//编译错误，需要强转类型 
+// 可以声明：可以声明带泛型的数组引用
+List<String>[] ls6 = new ArrayList[10]; 			//正确，但是会有警告
+List<String>[] ls4 = (List<String>[]) new ArrayList<?>[10]; //OK，但是会有警告
+List<?>[]      ls5 = new ArrayList<?>[10]; 			//正确 
+// ----  官网示例演示 --------------------------------
+List<String>[] listString = new List<String>[10]; // Not really allowed.    
+Object[] objects = (Object[]) listString;    
+List<Integer> listInteger = new ArrayList<Integer>();    
+listInteger.add(new Integer(3));    
+objects[0] = listInteger; 			// Unsound, but passes run time store check    
+String s = listString[0].get(0);	// Run-time error: ClassCastException.
+```
+
+采用通配符的方式是被允许的：**数组的类型不可以是类型变量，除非是采用通配符的方式。**因为对于通配符的方式，最后取出数据是要做显式的类型转换的。
+
+###### 3.6.2 正确初始化泛型数组实例
+
+**1. 创建一个类型擦除的数组，然后类型转换**
+
+```java
+Class GDemo<T>{ public T t; }
+public class ArrayOfGeneric {
+    public static void main(String[] args) { 
+        // 潜在风险：Unchecked cast: 'GDemo[]' to 'GDemo<java.lang.Integer>[]' 
+        GDemo<Integer>[] gArray = (GDemo<Integer>[])new GDemo[10];
+        // 潜在风险：Unchecked assignment: 'GDemo[]' to 'GDemo<java.lang.Integer>[]' 
+        GDemo<Integer>[] gArray1 = new GDemo[10];
+        
+        GDemo<Integer> integerGDemo = new GDemo<>();
+        gArray[0] = integerGDemo;    // 编译正确
+        GDemo<String> stringGDemo = new GDemo<>();
+        gArray[1] = stringGDemo;     // 编译错误
+    } 
+}
+```
+
+- 该方法仅仅是语法合格，运行时潜在的风险需要我们自己来承担。
+- 建议在使用到泛型数组的场景下，应该尽量使用列表集合进行替换。
+
+**2. 使用反射**
+
+反射创建数组：java.lang.reflect.Array.newInstance(Class<T> componentType, int length) 方法。
+
+```java
+Class Generic<T>{
+    public T t;
+}
+public class ArrayWithGeneric<T> {
+    private T[] array;
+ 
+    public ArrayWithGeneric(Class<T> type, int size) {
+        array = (T[]) Array.newInstance(type, size);
+    }
+    public T[] create() {
+        return array;
+    }
+}
+ArrayWithGeneric<Integer> arrayGeneric = new ArrayWithGeneric<>(Integer.class, 100);
+Integer[] array = arrayGeneric.create();
+array[0] = 100;		// 正确
+array[0] = "100";	// 编译报错
+```
+
+> 通过 Array.newInstance(type, size) 创建一个数组，用Class 对象标识数组的类型
+>
+> 推荐使用的方式创建泛型数组。
+
+ 通过反射查看泛型数组的相关信息：
+
+```java
+class Demo {
+    List<String> list[]; // 声明泛型类型数组
+    public static void main(String[] args) throws NoSuchFieldException {
+        Field list = Demo9.class.getDeclaredField("list");
+        Type genericType = list.getGenericType(); // 获取字段的泛型类型
+        System.out.println("genericType = " + genericType);
+        System.out.println("genericType.getClass() = " + genericType.getClass()); // 获取字段具体泛型类型
+        if (genericType instanceof GenericArrayType) {
+            GenericArrayType genericArrayType = (GenericArrayType) genericType;
+            Type genericComponentType = genericArrayType.getGenericComponentType(); // 获取数组的具体类型
+            System.out.println("GenericComponentType = " + genericComponentType.getClass()); // 获取数组对象的运行时类
+            if (genericComponentType instanceof ParameterizedType) {
+                ParameterizedType parameterizedType = (ParameterizedType) genericComponentType;
+                System.out.println("RawType = " + parameterizedType.getRawType());// 获取声明该类型的类或接口
+                Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();//获取泛型类型具体的类型列表
+                System.out.println("actualTypeArguments = " + Arrays.toString(actualTypeArguments));
+                System.out.println("OwnerType = " + parameterizedType.getOwnerType());
+            }}}}
+// ? genericType = java.util.List<java.lang.String>[]
+// ? genericType.getClass() = class sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl
+// ? GenericComponentType = class sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
+// ? RawType = interface java.util.List
+// ? actualTypeArguments = [class java.lang.String]
+// ? OwnerType = null
+```
+
+#### 4 泛型与反射 / 类型参数获取
+
+##### 4.1 类型接口 / 方法讲解
+
+关于泛型的解析，先了解一些类和接口，类图如下：
+
+![img](img/eba19544d52c3453976c5916b002a431.png)
+
+Type 接口
+
+方法：String getTypeName();
+作用：返回具体类型的名称。
+
+GenericDeclaration 接口：
+
+用于声明泛型变量的公共接口。
+
+方法：public TypeVariable<?>[] getTypeParameters();
+作用：获取声明的泛型变量类型清单。
+
+代码演示
+
+```java
+// 类中定义泛型变量类型
+public class Demo<T1, T2, T3>{}
+public static void main(String[] args) {
+    TypeVariable[] typeParameters = GDemo.class.getTypeParameters();
+    System.out.println(Arrays.toString(typeParameters)); // ？ [T1, T2, T3]
+}
+// 方法中定义泛型变量类型
+public <T1, T2, T3> T3 fun(T1 t1, T2 t2, T3 t3) {
+     return t3;
+}
+public static void main(String[] args) {
+    Method[] methods = GDemo.class.getDeclaredMethods();	// 获取声明的方法集合
+    Method method = ？;	// 省略：从 methods 中获取方法名为fun的 method 方法
+    Type[] typeParameters = method.getGenericParameterTypes();
+    System.out.println( Arrays.toString(typeParameters));	 // ？ [T1, T2, T3]
+}
+```
+
+泛型类 Demo 中声明了3个泛型变量：T1、T2、T3，调用 Demo 类的 Clas 对象的 getTypeParameters 方法,可以获取到Demo类的三个泛型变量类型信息。
+上面fun方法中声明了三个泛型类型变量：T1、T2、T3；Mehod类实现了 GenericDeclaration 接口，调用 getTypeParameters 方法，获取 fun 方法的3个泛型变量类型信息。
+
+Class 类
+
+Class 类的对象表示 JVM 中一个类或者接口，每个 Java 对象被加载到 JVM 中都会表现为一个Class 类型的对象（Java 数组也被映射为 Class 对象）。通过 Class 对象可以获取类或者接口中的任何信息。
+
+比如：类名、类中声明的泛型信息、类的修饰符、类的父类信息、类的接口信息、类中的任何方法信息、类中任何字段信息等等。
+
+Class 对象获取方式（3种）：
+
+类名.class
+实例对象.getClass();
+Class.forName(" 类或者接口的全限定名 ")
+方法：Field[] getFields();
+作用：返回当前类及其所有父类（包括父类的父类）中，所有 public 类型的字段。
+
+方法：Field[] getDeclaredFields();
+作用：返回当前类中所定义的字段。
+
+注意：（1）仅当前类内部定义的字段。（2）和字段修饰符无关。
+
+方法：Method[] getMethods();
+作用：返回当前类及其所有父类（包括父类的父类），当前实现的接口及其父接口（父接口继承的接口）中的所有 public 类型的方法。
+
+注意：接口方法默认 public 类型，可省略。
+
+方法：Method[] getDeclaredMethods();
+作用：返回当前类中所定义的方法。
+
+注意：（1）仅当前类内部定义的方法。（2）和修饰符无关。
+
+方法：Type getGenericSuperclass();
+作用：返回父类的类型信息（如果父类是泛型类型，会返回超类中泛型的详细信息）。
+
+方法：TypeVariable<Class>[] getTypeParameters();
+作用：用于返回当前类中声明的泛型变量参数列表。
+
+Method 类
+
+Method 类用来表示 Java 中的任何一个方法，并获取方法的任何信息。
+
+比如：方法的修饰符、方法名称、方法的参数、方法返回值、方法中声明的泛型参数列表等方法的一切信息。
+
+方法：String getName();
+作用：获取方法的名称。
+
+Type[] getGenericParameterTypes();
+作用：返回方法的参数信息（如果参数是泛型类型的，会返回泛型的详细信息）。
+
+Type getGenericReturnType();
+作用：返回方法的返回值类型（如果返回值是泛型的，会包含泛型的详细信息）。
+
+TypeVariable[] getTypeParameters();
+作用：用于返回当前方法中声明的泛型变量参数列表。
+
+Field 类
+
+这个类用来表示 Java 中的字段，并获取字段的任何信息。
+
+比如：字段的修饰符、字段名称、字段类型、泛型字段的类型等字段的一切信息。
+
+方法：String getName();
+作用：获取字段的名称。
+
+方法：Class<?> getType();
+作用：获取字段类型所属的 Class 对象。
+
+方法：Type getGenericType();
+作用：获取字段的类型，如果字段是泛型类型的，会返回泛型类型的详细信息；如果字段不是泛型类型的，和 getType 返回的结果是一样的。
+
+方法：Class<?> getDeclaringClass();
+作用：获取这个字段是在哪个类中声明的，也就是当前字段所属的类。
+
+ParameterizedType 接口
+
+这个接口表示参数化类型，例如 Map<Integer,String> 这种带有泛型的类型。
+
+方法：Type[] getActualTypeArguments()；
+作用：获取泛型类型中的类型列表，就是<>中包含的参数列表。
+
+举例：Map<Integer,String>泛型类型的参数类型有2个：Integer和String。
+
+方法：Type getRawType()；
+作用：返回参数化类型中的原始类型。如：List<String>的原始类型为List。
+
+方法：Type[] getOwnerType()；
+作用：返回当前类型所属的类型。
+
+举例：定义 Person 类，及其内部类 InnerStudent，则 InnerStudent 类所属的类型为 Person 类，如果是顶层类型则为 null。
+
+TypeVariable 接口
+
+这个接口表示的是类型变量。
+
+比如：List 中的 T 就是类型变量；而 class C1<T1,T2,T3>{} 表示一个类，这个类中定义了3个泛型变量类型，分别是 T1、T2 和 T2，泛型变量在 Java 中使用 TypeVariable 接口来表示，可以通过这个接口提供的方法获取泛型变量类型的详细信息。
+
+方法：Type[] getBounds()；
+作用：获取泛型变量类型的上边界，如果未明确什么上边界默认为 Object。
+
+举例：class add<T extend Number>{...} 中，T 的上边界有1个，即Number类。
+
+D getGenericDeclaration()；
+作用：返回 GenericDeclaration 对象，该对象声明该泛型变量原始类型。
+
+举例：class Person<T> 中的 T 为泛型变量，T是由 Person 类定义时声明的，即 Person 是需要返回的 GenericDeclaration 对象，也即泛型声明对象。方法同理，返回的泛型声明对象是 Method 对象。
+
+String getName()；
+作用：获取泛型变量在源码中定义的名字。
+
+WildcardType 接口
+
+表示的是通配符泛型，通配符使用 ？表示。
+
+比如：<? extends Number> 和 <? super Integer>。
+
+方法：Type[] getUpperBounds()；
+作用：返回泛型变量的上边界列表。
+
+方法：Type[] getLowerBounds()；
+作用：返回泛型变量的下边界列表。
+
+GenericArrayType 接口
+
+表示的是泛型数组类型，且数组中的元素是 ParameterizedType 或者 TypeVariable。
+
+方法：Type getGenericComponentType();
+作用：返回此数组的组件类型的 Type 对象。
+
+##### 4.2 泛型类与反射
+语法：class 类名 <泛型变量1，泛型变量2 extends 上边界类型1 & 上边界类型2 ...>。
+
+泛型变量需要在类名后面的用菱形语法定义。
+
+多个泛型变量（0到多个）之间用逗号隔开，多个上边界类型（0到多个）用 & 隔开。不指定上边界，默认为类型擦除 Object 类型。
+
+```java
+interface Demo01 {}
+interface Demo02 {}
+class DemoClass<T1, T2 extends Integer, T3 extends Demo01 & Demo02> {
+    public static void main(String[] args) {
+        // 利用clas对象，获取DemoClass类的类型变量列表
+        TypeVariable<Class<DemoClass>>[] typeParameters = DemoClass.class.getTypeParameters();
+        // ？ typeParameters = [T1、T2、T3]
+        System.out.println("typeParameters = " + Arrays.toString(typeParameters));
+        TypeVariable<Class<DemoClass>> typeParameter_of_T3 = typeParameters[2]; // 仅考虑类型变量T3
+        // ? Name_of_T1 = T1
+        System.out.println("Name_of_T3 = " + typeParameter_of_T3.getName());
+        // ? GenericDeclaration_of_T1 = class ....DemoClass
+        System.out.println("GenericDeclaration_of_T3 = " + typeParameter_of_T3.getGenericDeclaration());
+        // 获取该类型变量的上限列表
+        Type[] bounds = typeParameter_of_T3.getBounds();
+        // ? bounds.length = 2
+        System.out.println("bounds.length = " + bounds.length);
+        // ? bounds = [interface ....Demo01, interface ....Demo02]
+        System.out.println("bounds = " + Arrays.toString(bounds));
+    }
+}
+```
+
+T3 extends Demo01 & Demo0。T3 的上边界有2个接口，分别是 Demo01 和 Demo02。
+
+##### 4.3 泛型方法与反射
+语法：方法修饰符 <泛型变量1,泛型变量2 extends 上边界类型1 & 上边界类型2> 返回值 方法名称(泛型变量1 泛型名称，泛型变量2 泛型名称)。
+
+泛型变量需要在方法的修饰符和方法返回值之间用菱形语法定义。
+
+多个泛型变量（0到多个）之间用逗号隔开，多个上边界类型（0到多个）用 & 隔开。不指定上边界，默认为 Object 类型。
+
+```java
+interface Demo01 {}
+interface Demo02 {}
+class DemoMethodTest {
+    public <T1, T2 extends Integer, T3 extends Demo01 & Demo02> T3 fun(T1 t1, T2 t2, T3 t3) {
+        return t3;
+    }
+    public static void main(String[] args) {
+        // 获取class对象所表示的类或接口的所有已声明方法的Method对象
+        Method[] methods = DemoMethodTest.class.getDeclaredMethods();
+        Method methodFun = methods[1]; // 简写，已知methods包含两个方法，main和fun
+        System.out.println("------------  fun()泛型方法中声明的泛型参数类型列表  -----------");
+        Type[] genericParameterTypes = methodFun.getGenericParameterTypes();   
+        System.out.println("genericParameterTypes = " + Arrays.toString(genericParameterTypes));
+        {
+            TypeVariable T3 = (TypeVariable) genericParameterTypes[2]; // 仅考虑 T3         
+            System.out.println("TypeName_of_T3 = " + T3.getTypeName());           
+            System.out.println("Name_of_T3 =  " + T3.getName());           
+            System.out.println("GenericDeclaration_of_T3 = " + T3.getGenericDeclaration());
+            Type[] bounds = T3.getBounds();            
+            System.out.println("bounds.length = " + bounds.length);    
+            System.out.println("bounds = " + Arrays.toString(bounds));
+        }
+        System.out.println("------------  fun()方法的泛型返回值信息  -----------");
+        Type genericReturnType = methodFun.getGenericReturnType();
+        System.out.println("genericReturnType = " + genericReturnType);
+        {
+            TypeVariable T3 = (TypeVariable) genericReturnType;         
+            System.out.println("Name_of_T3 = " + T3.getName());
+            System.out.println("GenericDeclaration_of_T3 = " + T3.getGenericDeclaration());
+            Type[] bounds = T3.getBounds();          
+            System.out.println("bounds.length = " + bounds.length);            
+            System.out.println("bounds = " + Arrays.toString(bounds));
+        }
+        System.out.println("------------  fun()方法中声明的类型变量列表  -----------");
+        TypeVariable<Method>[] typeParameters = methodFun.getTypeParameters();        
+        System.out.println("typeParameters = " + Arrays.toString(typeParameters));
+        {
+            TypeVariable T3 = (TypeVariable) genericParameterTypes[2]; // 仅考虑 T3  
+            System.out.println("TypeName_of_T3 = " + T3.getTypeName());
+            System.out.println("Name_of_T3 = " + T3.getName());
+            System.out.println("GenericDeclaration_of_T3 = " + T3.getGenericDeclaration());
+            Type[] bounds = T3.getBounds();
+            System.out.println("bounds.length = " + bounds.length);
+            System.out.println("bounds = " + Arrays.toString(bounds));
+        }
+    }
+}
+// ------------  fun()泛型方法中声明的泛型参数类型列表  -----------
+// ? genericParameterTypes = [T1, T2, T3]
+// ? TypeName_of_T3 = T3
+// ? Name_of_T3 =  T3
+// ? getGenericDeclaration_of_T3 = public ...Demo01 ...DemoMethodTest.fun(...Object,...Integer,...Demo01)
+// ? bounds.length = 2
+// ? bounds = [interface ...Demo01, interface ...pojo.Demo02]
+// ------------  fun()方法的泛型返回值信息  -----------
+// ? genericReturnType = T3
+// ? Name_of_T3 = T3
+// ? GenericDeclaration_of_T3 = public ...Demo01 ...DemoMethodTest.fun(...Object,...Integer,...Demo01)
+// ? bounds.length = 2
+// ? bounds = [interface ...Demo01, interface ...pojo.Demo02]
+// ------------  fun()方法中声明的类型变量列表  -----------
+// ? typeParameters = [T1, T2, T3]
+// ? TypeName_of_T3 = T3
+// ? Name_of_T3 = T3
+// ? GenericDeclaration_of_T3 = ...Demo01 ...DemoMethodTest.fun(...Object,...Integer,...Demo01)
+// ? bounds.length = 2
+// ? bounds = [interface ...Demo01, interface ...Demo02]
+```
+
+
+
+## 指针
+
+
+
+
+
+## 闭包
+
+
+
+## 多线程
+
+
+
+## 函数式编程
+
+
+
+## 网络
+
+
+
+## 垃圾回收
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
