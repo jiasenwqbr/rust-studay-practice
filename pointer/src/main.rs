@@ -1,34 +1,50 @@
-use std::mem::size_of;
+use std::{
+    borrow::Cow,
+    ffi::{c_char, CStr},
+    mem::size_of,
+};
 
-static B: [u8; 10] = [99, 97, 98, 96, 95, 94, 93, 92, 91, 90];
-static C: [u8; 11] = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110];
+static B: [u8; 10] = [99, 97, 114, 114, 121, 116, 111, 119, 101, 108];
+static C: [u8; 11] = [116, 104, 97, 110, 107, 115, 102, 105, 115, 104, 0];
 fn main() {
-    let a: usize = 42;
-    let b = Box::new(&B);
-    let c = &C;
+    // let a: usize = 42;
+    // let b = Box::new(&B);
+    // let c = &C;
 
-    println!("a (unsigned int):");
-    println!(" the address is {:p}", &a);
-    println!(" the size of a is {:?}", size_of::<usize>());
-    println!(" the value is {:?}", a);
+    // println!("a (unsigned int):");
+    // println!(" the address is {:p}", &a);
+    // println!(" the size of a is {:?}", size_of::<usize>());
+    // println!(" the value is {:?}", a);
 
-    println!("b (unsigned int):");
-    println!(" the address is {:p}", &b);
-    println!(" the size of a is {:?}", size_of::<Box<[u8]>>());
-    println!(" the value is {:?}", b);
+    // println!("b (unsigned int):");
+    // println!(" the address is {:p}", &b);
+    // println!(" the size of a is {:?}", size_of::<Box<[u8]>>());
+    // println!(" the value is {:?}", b);
 
-    println!("c (unsigned int):");
-    println!(" the address is {:p}", &c);
-    println!(" the size of a is {:?}", size_of::<Box<[u8]>>());
-    println!(" the value is {:?}", c);
+    // println!("c (unsigned int):");
+    // println!(" the address is {:p}", &c);
+    // println!(" the size of a is {:?}", size_of::<Box<[u8]>>());
+    // println!(" the value is {:?}", c);
 
-    println!("B (unsigned int):");
-    println!(" the address is {:p}", &B);
-    println!(" the size of a is {:?}", size_of::<Box<[u8]>>());
-    println!(" the value is {:?}", B);
+    // println!("B (unsigned int):");
+    // println!(" the address is {:p}", &B);
+    // println!(" the size of a is {:?}", size_of::<Box<[u8]>>());
+    // println!(" the value is {:?}", B);
 
-    println!("C (unsigned int):");
-    println!(" the address is {:p}", &C);
-    println!(" the size of a is {:?}", size_of::<Box<[u8]>>());
-    println!(" the value is {:?}", C);
+    // println!("C (unsigned int):");
+    // println!(" the address is {:p}", &C);
+    // println!(" the size of a is {:?}", size_of::<Box<[u8]>>());
+    // println!(" the value is {:?}", C);
+
+    let a = 42;
+    let b: String;
+    let c: Cow<str>;
+    unsafe {
+        let b_ptr = &B as *const u8 as *mut u8;
+        b = String::from_raw_parts(b_ptr, 10, 10);
+
+        let c_ptr = &C as *const u8 as *const c_char;
+        c = CStr::from_ptr(c_ptr).to_string_lossy();
+    }
+    println!("a: {},b:{},c:{}", a, b, c);
 }
