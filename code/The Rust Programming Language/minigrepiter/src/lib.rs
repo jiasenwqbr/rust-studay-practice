@@ -24,6 +24,7 @@ impl Config {
                 } else {
                     false
                 }
+                1
             }
             None => false,
         };
