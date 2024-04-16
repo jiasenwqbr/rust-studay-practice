@@ -1,0 +1,12 @@
+use std::{sync::mpsc, thread};
+
+fn main() {
+    let (tx, rx) = mpsc::channel();
+    thread::spawn(move || {
+        let val = "hello rust!";
+        tx.send(val).unwrap();
+        println!("val is {}", val);
+    });
+    let received = rx.recv().unwrap();
+    println!("the received message is {}", received);
+}

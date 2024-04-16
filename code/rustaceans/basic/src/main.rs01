@@ -1,0 +1,21 @@
+fn main() {
+    // let mut x;
+    // x = 42;
+    // let y = &x;
+    // x = 43;
+    // println!("{}", *y);
+    let mut vec_iter = vec![1, 2, 3].into_iter();
+    let mut slice_iter = [4, 5, 6].iter();
+
+    print_iter(&mut vec_iter);
+    print_iter(&mut slice_iter);
+}
+
+fn print_iter<I>(iter: &mut I)
+where
+    I: Iterator<Item = i32>,
+{
+    for num in iter {
+        println!("{}", num);
+    }
+}
