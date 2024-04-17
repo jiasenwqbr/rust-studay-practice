@@ -1,0 +1,17 @@
+use basic::AverageCollection;
+
+fn main() {
+    let mut collection = AverageCollection {
+        list: vec![],
+        average: 0.0,
+    };
+    collection.update_average();
+    collection.remove();
+    let ave = collection.average;
+    println!("The average is {}", ave);
+    collection.add(100);
+    collection.add(80);
+    collection.add(90);
+    let ave = collection.average;
+    println!("The average is {}", ave);
+}
