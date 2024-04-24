@@ -1,3 +1,4 @@
+/// bubble sort
 pub fn bubble_sort<T: PartialOrd>(v: &mut [T]) {
     for _ in 0..v.len() {
         let mut sorted = true;
@@ -12,6 +13,9 @@ pub fn bubble_sort<T: PartialOrd>(v: &mut [T]) {
         }
     }
 }
+/// merge sort
+pub fn top_down_merge_sort<T: Ord + Copy>(arr: &mut [T]) {}
+
 #[cfg(test)]
 mod tests {
     use super::*;

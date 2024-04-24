@@ -413,3 +413,73 @@ print_char:
 
 ### Divide and ConquerSorting with Merge Sort
 
+归并排序（Merge Sort）是一种基于分治思想的经典排序算法，它的主要思想是将待排序的数组分为两个子数组，然后递归地对子数组进行排序，最后将排好序的子数组合并为一个有序数组。
+
+归并排序的基本思想可以概括为以下几个步骤：
+
+1. **分解**：将待排序的数组分解为两个子数组，每个子数组包含原数组的一半元素。如果数组长度为1或者0，则直接返回，因为长度为1的数组是有序的。
+2. **解决**：对分解得到的两个子数组分别进行归并排序，递归调用归并排序函数。
+3. **合并**：将两个已经排好序的子数组合并为一个有序数组。这一步需要使用一个额外的辅助数组，将两个子数组的元素按顺序合并到辅助数组中，并最终将辅助数组的内容复制回原数组。
+
+归并排序是一种稳定的排序算法，其时间复杂度为 O(n log n)，其中 n 是待排序数组的长度。虽然归并排序的时间复杂度较低，但是它需要额外的空间来存储辅助数组，因此在空间复杂度上不如其他原地排序算法（如快速排序）。然而，归并排序在实践中仍然被广泛应用，特别是在需要稳定排序且对空间复杂度要求不严格的情况下。
+
+Merge Sort is a classic sorting algorithm based on the divide-and-conquer approach. Its main idea is to divide the array to be sorted into two subarrays, recursively sort the subarrays, and then merge the sorted subarrays into one sorted array.
+
+The basic steps of Merge Sort can be summarized as follows:
+
+1. **Divide**: Divide the array to be sorted into two subarrays, each containing half of the elements of the original array. If the length of the array is 1 or 0, simply return it since an array of length 1 is already sorted.
+2. **Conquer**: Recursively apply Merge Sort to each of the two subarrays.
+3. **Merge**: Merge the two sorted subarrays into one sorted array. This step requires the use of an additional auxiliary array to merge the elements of the two subarrays in sorted order, and finally copy the content of the auxiliary array back to the original array.
+
+Merge Sort is a stable sorting algorithm with a time complexity of O(n log n), where n is the length of the array to be sorted. Although Merge Sort has a higher time complexity than some other sorting algorithms, it is widely used in practice, especially when stable sorting is required and space complexity is not a major concern.
+
+
+
+
+
+#### Java
+
+```java
+package com.jason.datastructor.sort;
+
+/**
+ * @Description:
+ * @author: 贾森
+ * @date: 2024年04月24日 下午3:17
+ */
+public class MergeSort {
+    public static void main(String[] args) {
+        int[] nums = new int[] { 9, 8, 7, 6, 5, 4, 3, 2, 10 };
+        int[] newNums = mergeSort(nums, 0, nums.length - 1);
+        for (int x : newNums) {
+            System.out.println(x);
+        }
+
+    }
+    public static int[] mergeSort(int[] nums,int l,int h){
+        if (l == h)
+            return new int[] { nums[l] };
+
+        int mid = l + (h - l) / 2;
+        int[] leftArr = mergeSort(nums, l, mid); //左有序数组
+        int[] rightArr = mergeSort(nums, mid + 1, h); //右有序数组
+        int[] newNum = new int[leftArr.length + rightArr.length]; //新有序数组
+
+        int m = 0, i = 0, j = 0;
+        while (i < leftArr.length && j < rightArr.length) {
+            newNum[m++] = leftArr[i] <= rightArr[j] ? leftArr[i++] : rightArr[j++];
+        }
+        while (i < leftArr.length)
+            newNum[m++] = leftArr[i++];
+        while (j < rightArr.length)
+            newNum[m++] = rightArr[j++];
+        return newNum;
+    }
+}
+
+```
+
+
+
+
+
