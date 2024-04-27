@@ -433,7 +433,96 @@ The basic steps of Merge Sort can be summarized as follows:
 
 Merge Sort is a stable sorting algorithm with a time complexity of O(n log n), where n is the length of the array to be sorted. Although Merge Sort has a higher time complexity than some other sorting algorithms, it is widely used in practice, especially when stable sorting is required and space complexity is not a major concern.
 
+#### Rust
 
+```rust
+use std::fmt::Debug;
+
+/// bubble sort
+pub fn bubble_sort<T: PartialOrd>(v: &mut [T]) {
+    for _ in 0..v.len() {
+        let mut sorted = true;
+        for i in 0..v.len() - 1 {
+            if v[i] > v[i + 1] {
+                v.swap(i, i + 1);
+                sorted = false;
+            }
+        }
+        if sorted {
+            return;
+        }
+    }
+}
+/// merge sort
+pub fn merge_sort<T: PartialOrd + Debug>(mut v: Vec<T>) -> Vec<T> {
+    // sort the left half
+    // sort the right half
+    // bring the sorted halfs together
+
+    if v.len() <= 1 {
+        return v;
+    }
+    let mut res = Vec::with_capacity(v.len());
+    let b = v.split_off(v.len() / 2);
+    let a = merge_sort(v);
+    let b = merge_sort(b);
+
+    // bring them together again add whichever is lowest the front of a or the front of b
+    //
+    let mut a_it = a.into_iter();
+    let mut b_it = b.into_iter();
+    let mut a_peek = a_it.next();
+    let mut b_peek = b_it.next();
+    loop {
+        match a_peek {
+            Some(ref a_val) => match b_peek {
+                Some(ref b_val) => {
+                    if b_val < a_val {
+                        res.push(b_peek.take().unwrap());
+                        b_peek = b_it.next();
+                    } else {
+                        res.push(a_peek.take().unwrap());
+                        a_peek = a_it.next();
+                    }
+                }
+                None => {
+                    res.push(a_peek.take().unwrap());
+                    res.extend(a_it);
+                    return res;
+                }
+            },
+            None => {
+                if let Some(b_val) = b_peek {
+                    res.push(b_val);
+                }
+                res.extend(b_it);
+                return res;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_bubble_sort() {
+        let mut v = vec![4, 5, 3, 2, 1];
+        bubble_sort(&mut v);
+        assert_eq!(vec![1, 2, 3, 4, 5], v);
+    }
+
+    #[test]
+    fn test_merge_sort() {
+        let v = vec![4, 6, 1, 8, 11, 13, 3];
+        let v = merge_sort(v);
+        println!("{:?}", v);
+        assert_eq!(v, vec![1, 3, 4, 6, 8, 11, 13]);
+    }
+}
+
+```
 
 
 
@@ -481,5 +570,73 @@ public class MergeSort {
 
 
 
+```java
+package com.jason.datastructor.sort;
 
+/**
+ * @Description:
+ * @author: 贾森
+ * @date: 2024年04月26日 下午2:21
+ */
+public class MergeSort1 {
+    public static void mergeSortFunction(int[] array,int[] tempArray,int begin,int end){
+        if (begin < end){
+            int mid = begin + ((end-begin)>>1);
+            mergeSortFunction(array,tempArray,begin,mid);
+            mergeSortFunction(array,tempArray,mid+1,end);
+            merge(array,tempArray,begin,mid,end);
+        }
+    }
+    public static void merge(int[] array,int[] tempArray,int begin,int mid,int end){
+        int leftPos = begin;
+        int rightPos= mid+1;
+        int tempArrayPos= begin;
+        while(leftPos<=mid&&rightPos<=end){
+            if (array[leftPos]<array[rightPos]){
+                tempArray[tempArrayPos++] = array[leftPos++];
+            } else {
+                tempArray[tempArrayPos++] = array[rightPos++];
+            }
+        }
+        while(leftPos<=mid){
+            tempArray[tempArrayPos++] = array[leftPos++];
+        }
+        while(rightPos<=end){
+            tempArray[tempArrayPos++] = array[rightPos++];
+        }
+        System.out.println("--------------------tempArray");
+        for (int x : tempArray){
+            System.out.print(x+",");
+        }
+        System.out.println("");
+        System.out.println("--------------------tempArray");
+
+        for (int i = begin;i<=end;i++){
+            array[i] = tempArray[i];
+        }
+
+
+        System.out.println("--------------------array");
+        for (int x : array){
+            System.out.print(x+",");
+        }
+        System.out.println("");
+        System.out.println("--------------------array");
+
+    }
+    public static void main(String[] args) {
+        int[] nums = new int[] { 9, 8, 7, 6, 5, 4, 3, 2, 10 };
+        int[] tempArray = new int[nums.length];
+        mergeSortFunction(nums, tempArray,0, nums.length - 1);
+        for (int x : nums) {
+            System.out.println(x);
+        }
+    }
+}
+
+```
+
+
+
+#### Golang
 
