@@ -747,7 +747,305 @@ if __name__  == "__main__":
 #### Javascript
 
 ```javascript
+function mergeSort(arr) {
+  if (arr.length <= 1) {
+    return arr;
+  }
+  const mid = Math.floor(arr.length / 2);
+  const leftHalf = arr.slice(0, mid);
+  const rightHalf = arr.slice(mid);
 
+  return merge(mergeSort(leftHalf), mergeSort(rightHalf));
+}
+function merge(leftArr, rightArr) {
+  let result = [];
+  let leftIndex = 0;
+  let rightIndex = 0;
+
+  while (leftIndex < leftArr.length && rightIndex < rightArr.length) {
+    if (leftArr[leftIndex] < rightArr[rightIndex]) {
+      result.push(leftArr[leftIndex]);
+      leftIndex++;
+    } else {
+      result.push(rightArr[rightIndex]);
+      rightIndex++;
+    }
+  }
+
+  return result
+    .concat(leftArr.slice(leftIndex))
+    .concat(rightArr.slice(rightIndex));
+}
+const arr = [4, 6, 1, 8, 11, 13, 3];
+console.log("排序前的数组:", arr);
+
+const sortedArr = mergeSort(arr);
+console.log("排序后的数组:", sortedArr);
+```
+
+
+
+#### TypeScript
+
+```ty
+function mergeSort(arr: number[]): number[] {
+    if (arr.length <= 1) {
+        return arr;
+    }
+
+    const mid = Math.floor(arr.length / 2);
+    const leftHalf = arr.slice(0, mid);
+    const rightHalf = arr.slice(mid);
+
+    return merge(mergeSort(leftHalf), mergeSort(rightHalf));
+}
+
+function merge(leftArr: number[], rightArr: number[]): number[] {
+    let result: number[] = [];
+    let leftIndex = 0;
+    let rightIndex = 0;
+
+    while (leftIndex < leftArr.length && rightIndex < rightArr.length) {
+        if (leftArr[leftIndex] < rightArr[rightIndex]) {
+            result.push(leftArr[leftIndex]);
+            leftIndex++;
+        } else {
+            result.push(rightArr[rightIndex]);
+            rightIndex++;
+        }
+    }
+
+    return result.concat(leftArr.slice(leftIndex)).concat(rightArr.slice(rightIndex));
+}
+
+const arr = [4, 6, 1, 8, 11, 13, 3];
+console.log("排序前的数组:", arr);
+
+const sortedArr = mergeSort(arr);
+console.log("排序后的数组:", sortedArr);
+```
+
+#### WebAssembly
+
+首先，让我们编写一个 C 语言的归并排序算法，保存为 `merge_sort.c` 文件：
+
+```c
+#include <stdlib.h>
+
+void merge(int arr[], int left, int mid, int right) {
+    int n1 = mid - left + 1;
+    int n2 = right - mid;
+
+    int leftArr[n1], rightArr[n2];
+
+    for (int i = 0; i < n1; i++) {
+        leftArr[i] = arr[left + i];
+    }
+    for (int j = 0; j < n2; j++) {
+        rightArr[j] = arr[mid + 1 + j];
+    }
+
+    int i = 0, j = 0, k = left;
+
+    while (i < n1 && j < n2) {
+        if (leftArr[i] <= rightArr[j]) {
+            arr[k++] = leftArr[i++];
+        } else {
+            arr[k++] = rightArr[j++];
+        }
+    }
+
+    while (i < n1) {
+        arr[k++] = leftArr[i++];
+    }
+
+    while (j < n2) {
+        arr[k++] = rightArr[j++];
+    }
+}
+
+void mergeSort(int arr[], int left, int right) {
+    if (left < right) {
+        int mid = left + (right - left) / 2;
+
+        mergeSort(arr, left, mid);
+        mergeSort(arr, mid + 1, right);
+
+        merge(arr, left, mid, right);
+    }
+}
 
 ```
+
+接下来，我们将使用 Emscripten 工具链将该 C 代码编译为 WebAssembly 模块。假设你已经安装了 Emscripten 并配置好了环境变量，然后使用以下命令将其编译为 WebAssembly 模块：
+
+```shell
+emcc merge_sort.c -o merge_sort.js -s EXPORTED_FUNCTIONS='["_mergeSort"]' -s EXTRA_EXPORTED_RUNTIME_METHODS='["cwrap"]'
+```
+
+这将生成两个文件：`merge_sort.wasm` 和 `merge_sort.js`。其中，`merge_sort.js` 包含了 JavaScript 代码，可以用来加载和调用 `merge_sort.wasm` 中的函数。
+
+最后，在 JavaScript 中使用这些文件：
+
+```javascript
+const fs = require('fs');
+const { promisify } = require('util');
+const { wasmBinary } = require('./merge_sort');
+
+const readFileAsync = promisify(fs.readFile);
+
+async function mergeSort(arr) {
+    const { instance } = await WebAssembly.instantiate(wasmBinary);
+    const mergeSortFunc = instance.exports._mergeSort;
+
+    const memory = new Uint32Array(instance.exports.memory.buffer);
+
+    const arrPointer = mergeSortFunc.length / 4;
+    const len = arr.length;
+    const pointer = arrPointer + 1;
+
+    memory[arrPointer] = len;
+
+    for (let i = 0; i < len; i++) {
+        memory[pointer + i] = arr[i];
+    }
+
+    mergeSortFunc(pointer);
+
+    const sortedArr = [];
+    for (let i = 0; i < len; i++) {
+        sortedArr.push(memory[pointer + i]);
+    }
+
+    return sortedArr;
+}
+
+async function main() {
+    const arr = [4, 6, 1, 8, 11, 13, 3];
+    console.log("排序前的数组:", arr);
+
+    const sortedArr = await mergeSort(arr);
+    console.log("排序后的数组:", sortedArr);
+}
+
+main();
+
+```
+
+
+
+#### Assembly
+
+```assembly
+section .data
+    array db 64, 25, 12, 22, 11, 45, 77, 98, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1
+    array_size equ $ - array
+    sorted_array times array_size db 0
+
+section .text
+    global _start
+
+_start:
+    mov ecx, array_size        ; 数组长度
+    mov ebx, 1                 ; 缩进（递归深度）初始化为1
+    jmp mergeSort              ; 调用归并排序
+
+mergeSort:
+    cmp ecx, 1                 ; 检查数组长度是否为1
+    jle return                 ; 如果是，返回
+
+    mov eax, ecx               ; 复制数组长度
+    shr eax, 1                 ; 右移一位，相当于除以2
+    push eax                   ; 将数组长度的一半压入栈
+    push ebx                   ; 将缩进（递归深度）压入栈
+    inc ebx                    ; 递归深度加1
+    call mergeSort             ; 递归调用归并排序
+    pop ebx                    ; 弹出递归深度
+    pop eax                    ; 弹出数组长度的一半
+
+    add esi, eax               ; 设置左侧子数组的结束位置
+    mov edi, esi               ; 设置右侧子数组的开始位置
+    mov edx, ecx               ; 复制数组长度
+    sub edx, eax               ; 计算右侧子数组的长度
+
+    push edx                   ; 将右侧子数组的长度压入栈
+    push esi                   ; 将左侧子数组的结束位置压入栈
+    mov esi, array             ; 设置左侧子数组的开始位置
+    call merge                 ; 调用 merge 函数
+    pop esi                    ; 弹出左侧子数组的结束位置
+    pop edx                    ; 弹出右侧子数组的长度
+
+    add edi, edx               ; 设置右侧子数组的结束位置
+    mov esi, edi               ; 设置左侧子数组的开始位置
+
+    push ecx                   ; 将数组长度压入栈
+    push edi                   ; 将右侧子数组的结束位置压入栈
+    call merge                 ; 调用 merge 函数
+    pop edi                    ; 弹出右侧子数组的结束位置
+    pop ecx                    ; 弹出数组长度
+
+    jmp return                 ; 返回
+
+merge:
+    mov eax, ecx               ; 复制数组长度
+    mov ebx, esi               ; 设置左侧数组指针
+    mov ecx, edi               ; 设置右侧数组指针
+    mov edi, sorted_array      ; 设置目标数组指针
+
+merge_loop:
+    cmp ebx, esi               ; 检查左侧数组是否已经遍历完
+    je copy_remaining_elements ; 如果是，跳转到复制剩余元素的步骤
+
+    cmp ecx, edi               ; 检查右侧数组是否已经遍历完
+    je copy_remaining_elements ; 如果是，跳转到复制剩余元素的步骤
+
+    mov al, [ebx]              ; 从左侧数组加载元素到 al 寄存器
+    mov dl, [ecx]              ; 从右侧数组加载元素到 dl 寄存器
+
+    cmp al, dl                 ; 比较左侧数组元素和右侧数组元素
+    jle copy_left_element      ; 如果左侧数组元素小于等于右侧数组元素，跳转到复制左侧元素的步骤
+
+copy_right_element:
+    mov [edi], dl              ; 复制右侧数组元素到目标数组
+    inc ecx                    ; 右侧数组指针加1
+    inc edi                    ; 目标数组指针加1
+    jmp merge_loop             ; 跳转到循环的开头
+
+copy_left_element:
+    mov [edi], al              ; 复制左侧数组元素到目标数组
+    inc ebx                    ; 左侧数组指针加1
+    inc edi                    ; 目标数组指针加1
+    jmp merge_loop             ; 跳转到循环的开头
+
+copy_remaining_elements:
+    cmp ebx, esi               ; 检查左侧数组是否已经遍历完
+    je copy_right_elements     ; 如果是，跳转到复制右侧数组剩余元素的步骤
+
+copy_left_elements:
+    mov al, [ebx]              ; 从左侧数组加载元素到 al 寄存器
+    mov [edi], al              ; 复制左侧数组元素到目标数组
+    inc ebx                    ; 左侧数组指针加1
+    inc edi                    ; 目标数组指针加1
+    jmp copy_remaining_elements ; 跳转到复制剩余元素的步骤
+
+copy_right_elements:
+    mov dl, [ecx]              ; 从右侧数组加载元素到 dl 寄存器
+    mov [edi], dl              ; 复制右侧数组元素到目标数组
+    inc ecx                    ; 右侧数组指针加1
+    inc edi                    ; 目标数组指针加1
+    jmp copy_remaining_elements ; 跳转到复制剩余元素的步骤
+
+return:
+    ; 在这里处理排序后的数组
+    ; 返回到调用者
+    ; 可以在这里添加代码来打印排序后的数组
+    mov eax, 1
+    xor ebx, ebx
+    int 0x80
+
+```
+
+
+
+
 
