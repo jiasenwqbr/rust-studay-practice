@@ -1,3 +1,7 @@
+# Data Structure and Algorithms
+
+
+
 ## Sorting
 
 ### Bubble Sorting
@@ -639,4 +643,111 @@ public class MergeSort1 {
 
 
 #### Golang
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	arr := []int{4, 6, 1, 8, 11, 13, 3}
+	mergeSort(arr)
+	fmt.Println("排序后的数组：", arr)
+
+}
+
+func mergeSort(s []int) []int {
+	len := len(s)
+	if len == 1 {
+		return s //最后切割只剩下一个元素
+	}
+	m := len / 2
+	leftS := mergeSort(s[:m])
+	rightS := mergeSort(s[m:])
+
+	return merge(leftS, rightS)
+}
+
+// 把两个有序的切片合并成一个有序的切片
+func merge(l []int, r []int) []int {
+	lLen := len(l)
+	rLen := len(r)
+	res := make([]int, 0)
+
+	lIndex, rIndex := 0, 0 //两个切片的下标，插入一个数，下标加一
+	for lIndex < lLen && rIndex < rLen {
+		if l[lIndex] > r[rIndex] {
+			res = append(res, r[rIndex])
+			rIndex++
+		} else {
+			res = append(res, l[lIndex])
+			lIndex++
+		}
+	}
+	if lIndex < lLen { //左边的还有剩余元素
+		res = append(res, l[lIndex:]...)
+	}
+	if rIndex < rLen {
+		res = append(res, r[rIndex:]...)
+	}
+	fmt.Println("res：", res)
+	return res
+}
+
+```
+
+
+
+#### Python
+
+```py
+def merge_sort(arr):
+    if len(arr) > 1:
+        mid = len(arr)//2
+        left_half = arr[:mid]
+        right_half = arr[mid:]
+        # 递归的进行对左半部分和右半部分进行归并排序
+        merge_sort(left_half)
+        merge_sort(right_half)
+
+        i = j = k = 0
+
+        # 合并两个有序的数组
+
+        while i<len(left_half) and j<len(right_half):
+            if left_half[i] < right_half[j]:
+                arr[k] = left_half[i]
+                i += 1
+            else:
+                arr[k] = right_half[j]
+                j += 1
+            k += 1
+
+        while i<len(left_half):
+            arr[k] = left_half[i]
+            i += 1
+            k += 1
+
+        while j<len(right_half):
+            arr[k] = right_half[j]
+            j += 1
+            k += 1
+def main():
+    arr = [4, 6, 1, 8, 11, 13, 3]
+    print("排序前的数组：", arr)
+    merge_sort(arr)
+    print("排序后的数组", arr)
+
+if __name__  == "__main__":
+    main()
+```
+
+
+
+#### Javascript
+
+```javascript
+
+
+```
 
