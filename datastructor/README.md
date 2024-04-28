@@ -1097,3 +1097,68 @@ mod tests {
 
 ```
 
+
+
+#### Java
+
+```java
+package com.jason.datastructor.sort;
+
+/**
+ * @Description:
+ * @author: 贾森
+ * @date: 2024年04月28日 上午9:12
+ */
+public class QuickSort {
+    public static void main(String[] args) {
+        int[] nums = new int[] { 4, 6, 1, 8, 11, 13, 3 };
+        quickSort(nums,0, nums.length-1);
+        for (int x : nums) {
+            System.out.println(x);
+        }
+
+    }
+    //快排实现方法
+    public static void quickSort(int[] array,int low,int high) {
+        int i,j,pivot;
+        //结束条件
+        if(low >= high) {
+            return;
+        }
+        i = low;
+        j = high;
+        //选择的节点，这里选择的数组的第一数作为节点
+        pivot = array[low];
+        while(i<j) {
+            //从右往左找比节点小的数，循环结束要么找到了，要么i=j
+            while(array[j] >= pivot && i<j) {
+                j--;
+            }
+            //从左往右找比节点大的数，循环结束要么找到了，要么i=j
+            while(array[i] <= pivot && i<j) {
+                i++;
+            }
+            //如果i!=j说明都找到了，就交换这两个数
+            if(i<j) {
+                int temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
+            }
+        }
+        //i==j一轮循环结束，交换节点的数和相遇点的数
+        array[low] = array[i];
+        array[i] = pivot;
+        System.out.println("--------------------array");
+        for (int x : array) {
+            System.out.print(x+",");
+        }
+        System.out.println("--------------------array");
+        System.out.println("low:"+low+",high:"+high+",i:"+i+",j:"+j);
+        //数组“分两半”,再重复上面的操作
+        quickSort(array,low,i-1);
+        quickSort(array,i+1,high);
+    }
+}
+
+```
+

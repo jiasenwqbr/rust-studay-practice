@@ -88,6 +88,7 @@ pub fn quick_sort<T: PartialOrd + Debug>(v: &mut [T]) {
     }
     let p = pivot(v);
     println!("{:?}", p);
+    println!("{:?}", v);
     let (a, b) = v.split_at_mut(p);
     quick_sort(a);
     quick_sort(&mut b[1..]);
