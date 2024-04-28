@@ -1162,3 +1162,42 @@ public class QuickSort {
 
 ```
 
+#### Golang
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	s := []int{4, 6, 1, 8, 11, 13, 3}
+	quickSort(s)
+	fmt.Println(s)
+}
+
+func quickSort(s []int) {
+	len := len(s)
+	if len < 2 {
+		return
+	}
+	p, trip := 0, len-1
+	pivot := s[p] //s[head]就是我们的标尺
+	for p < trip {
+		if s[p+1] > pivot { //标尺元素遇到大于它的，就把这个元素丢到最右边trip
+			s[p+1], s[trip] = s[trip], s[p+1]
+			trip--
+		} else if s[p+1] < s[p] { //标尺元素遇到小于它的，就换位置，标尺右移动一位。
+			s[p], s[p+1] = s[p+1], s[p]
+			p++
+		} else { //相等不用交换
+			p++
+		}
+	}
+	//进过上面的处理，保证了标尺左边的元素都小于等于标尺元素（s[p]），右边的元素大于等于标尺元素。
+	quickSort(s[:p])
+	quickSort(s[p+1:])
+
+}
+
+```
+

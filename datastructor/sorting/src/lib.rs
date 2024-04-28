@@ -25,7 +25,7 @@ pub fn merge_sort<T: PartialOrd + Debug>(mut v: Vec<T>) -> Vec<T> {
         return v;
     }
     let mut res = Vec::with_capacity(v.len());
-    let b = v.split_off(v.len() / 2);
+    let b: Vec<T> = v.split_off(v.len() / 2);
     let a = merge_sort(v);
     let b = merge_sort(b);
 
