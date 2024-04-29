@@ -1201,3 +1201,159 @@ func quickSort(s []int) {
 
 ```
 
+
+
+#### Javascript
+
+```javascript
+function quickSort(arr) {
+  if (arr.length <= 1) {
+    return arr;
+  }
+
+  const pivot = arr[0];
+  const left = [];
+  const right = [];
+
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < pivot) {
+      left.push(arr[i]);
+    } else {
+      right.push(arr[i]);
+    }
+  }
+
+  return quickSort(left).concat(pivot, quickSort(right));
+}
+const arr = [4, 6, 1, 8, 11, 13, 3];
+console.log("排序前的数组:", arr);
+const sortedArr = quickSort(arr);
+console.log("排序后的数组:", sortedArr);
+```
+
+
+
+#### TypeScript
+
+```typescript
+function quickSort(arr: number[]): number[] {
+  if (arr.length <= 1) {
+    return arr;
+  }
+
+  const pivot = arr[0];
+  const left: number[] = [];
+  const right: number[] = [];
+
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < pivot) {
+      left.push(arr[i]);
+    } else {
+      right.push(arr[i]);
+    }
+  }
+
+  return [...quickSort(left), pivot, ...quickSort(right)];
+}
+
+const arrary: number[] = [64, 34, 25, 12, 22, 11, 90];
+console.log("排序前的数组", arrary);
+const sortedArray: number[] = quickSort(arrary);
+console.log("排序后的数组", sortedArray);
+```
+
+
+
+#### WebAssembly
+
+首先，让我们编写一个简单的C程序，实现快速排序算法。将这个文件命名为`quick_sort.c`：
+
+```c
+
+#include <stdio.h>
+
+void swap(int* a, int* b) {
+    int t = *a;
+    *a = *b;
+    *b = t;
+}
+
+int partition(int arr[], int low, int high) {
+    int pivot = arr[high];
+    int i = low - 1;
+    
+    for (int j = low; j <= high - 1; j++) {
+        if (arr[j] < pivot) {
+            i++;
+            swap(&arr[i], &arr[j]);
+        }
+    }
+    swap(&arr[i + 1], &arr[high]);
+    return (i + 1);
+}
+
+void quickSort(int arr[], int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
+}
+
+int main() {
+    int arr[] = {3, 0, 2, 5, -1, 4, 1};
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    quickSort(arr, 0, n - 1);
+
+    printf("Sorted array: ");
+    for (int i = 0; i < n; i++)
+        printf("%d ", arr[i]);
+    printf("\n");
+
+    return 0;
+}
+```
+
+接下来，我们将使用Emscripten将这个C程序编译成WebAssembly模块。假设你已经安装了Emscripten并配置好了环境变量。
+
+在命令行中运行以下命令：
+
+```bash
+emcc quick_sort.c -o quick_sort.js -s WASM=1 -s EXPORTED_FUNCTIONS="['_quickSort']"
+```
+
+这将生成两个文件：`quick_sort.js` 和 `quick_sort.wasm`。其中，`quick_sort.js` 包含了用于加载和运行WebAssembly模块的JavaScript代码。
+
+接着，你可以将这些文件嵌入到你的网页中，并在JavaScript代码中调用快速排序算法。例如：
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAssembly Quick Sort</title>
+</head>
+<body>
+    <script src="quick_sort.js"></script>
+    <script>
+        // 导入 WebAssembly 模块
+        const Module = require('./quick_sort');
+
+        // 调用快速排序函数
+        const arr = [3, 0, 2, 5, -1, 4, 1];
+        const n = arr.length;
+        const ptr = Module._malloc(n * 4); // 申请内存空间
+        Module.HEAP32.set(arr, ptr >> 2); // 将数组复制到内存中
+        Module._quickSort(ptr, 0, n - 1); // 调用快速排序函数
+        const sortedArr = Module.HEAP32.subarray(ptr >> 2, ptr >> 2 + n); // 从内存中读取排序后的数组
+        console.log("Sorted array:", sortedArr);
+        Module._free(ptr); // 释放内存
+    </script>
+</body>
+</html>
+```
+
+这样，你就可以在网页中使用WebAssembly模块实现的快速排序算法了。
