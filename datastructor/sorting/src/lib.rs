@@ -1,3 +1,4 @@
+pub mod sort;
 use std::fmt::Debug;
 
 /// bubble sort
