@@ -1442,3 +1442,271 @@ mod tests {
 
 
 
+#### Java
+
+```java
+package com.jason.datastructor.sort;
+
+import java.lang.reflect.Array;
+
+/**
+ * @Description:
+ * @author: 贾森
+ * @date: 2024年04月29日 下午4:11
+ */
+public class InsertSort {
+    public static void main(String[] args) {
+        int[] intArray = {64, 34, 25, 12, 22, 11, 90};
+        insertSort(intArray);
+        printArray(intArray);
+
+    }
+
+    public static void insertSort(int[] arr){
+       for (int i = 1;i<arr.length;i++){
+           int j = i;
+           while(j>0 && arr[j] < arr[j-1]){
+               int temp = arr[j];
+               arr[j] = arr[j-1];
+               arr[j-1] = temp;
+               j--;
+           }
+       }
+    }
+    // 打印数组
+    public static <T> void printArray(int[] array) {
+        for (int element : array) {
+            System.out.print(element + " ");
+        }
+        System.out.println();
+    }
+}
+
+```
+
+
+
+#### Golang
+
+```go
+package main
+import "fmt"
+
+func main() {
+	arr := []int{4, 5, 3, 2, 1, 8, 9, 10, 11, 7, 6}
+	fmt.Println("排序前的数组：", arr)
+	insert_sort(arr)
+	fmt.Println("排序后的数组：", arr)
+}
+func insert_sort(arr []int) {
+	n := len(arr)
+	for i := 1; i < n; i++ {
+		for j := i; j > 0; j-- {
+			if arr[j] < arr[j-1] {
+				arr[j], arr[j-1] = arr[j-1], arr[j]
+			}
+		}
+	}
+}
+```
+
+
+
+#### JavaScript
+
+```javascript
+function insertSort(arr) {
+  const n = arr.length;
+  for (let i = 1; i < n; i++) {
+    for (let j = i; j > 0; j--) {
+      if (arr[j] < arr[j - 1]) {
+        const temp = arr[j - 1];
+        arr[j - 1] = arr[j];
+        arr[j] = temp;
+      }
+    }
+  }
+  //console.log("排序后的数组:", arr);
+}
+const arr = [4, 6, 1, 8, 11, 13, 3, 7, 9, 8, 10];
+console.log("排序前的数组:", arr);
+insertSort(arr);
+console.log("排序后的数组:", arr);
+
+```
+
+
+
+#### TypeScript
+
+```typescript
+function insertSort(arr: Number[]) {
+  const n = arr.length;
+  for (let i = 1; i < n; i++) {
+    for (let j = i; j > 0; j--) {
+      if (arr[j] < arr[j - 1]) {
+        const temp = arr[j - 1];
+        arr[j - 1] = arr[j];
+        arr[j] = temp;
+      }
+    }
+  }
+}
+const arr = [4, 6, 1, 8, 11, 13, 3, 7, 9, 8, 10];
+console.log("排序前的数组:", arr);
+insertSort(arr);
+console.log("排序后的数组:", arr);
+```
+
+
+
+#### WebAssembly
+
+首先，让我们编写一个简单的C程序，实现插入排序算法。将这个文件命名为 `insertion_sort.c`：
+
+```c
+
+#include <stdio.h>
+
+void insertionSort(int arr[], int n) {
+    int i, key, j;
+    for (i = 1; i < n; i++) {
+        key = arr[i];
+        j = i - 1;
+
+        /* Move elements of arr[0..i-1], that are greater than key,
+        to one position ahead of their current position */
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j = j - 1;
+        }
+        arr[j + 1] = key;
+    }
+}
+
+int main() {
+    int arr[] = {12, 11, 13, 5, 6};
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    insertionSort(arr, n);
+
+    printf("Sorted array: ");
+    for (int i = 0; i < n; i++)
+        printf("%d ", arr[i]);
+    printf("\n");
+
+    return 0;
+}
+```
+
+接下来，我们将使用Emscripten将这个C程序编译成WebAssembly模块。假设你已经安装了Emscripten并配置好了环境变量。
+
+在命令行中运行以下命令：
+
+```bash
+emcc insertion_sort.c -o insertion_sort.js -s WASM=1 -s EXPORTED_FUNCTIONS="['_insertionSort']"
+```
+
+这将生成两个文件：`insertion_sort.js` 和 `insertion_sort.wasm`。其中，`insertion_sort.js` 包含了用于加载和运行WebAssembly模块的JavaScript代码。
+
+接着，你可以将这些文件嵌入到你的网页中，并在JavaScript代码中调用插入排序算法。例如：
+
+```javascript
+html
+Copy code
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAssembly Insertion Sort</title>
+</head>
+<body>
+    <script src="insertion_sort.js"></script>
+    <script>
+        // 导入 WebAssembly 模块
+        const Module = require('./insertion_sort');
+
+        // 调用插入排序函数
+        const arr = [12, 11, 13, 5, 6];
+        const n = arr.length;
+        const ptr = Module._malloc(n * 4); // 申请内存空间
+        Module.HEAP32.set(arr, ptr >> 2); // 将数组复制到内存中
+        Module._insertionSort(ptr, n); // 调用插入排序函数
+        const sortedArr = Module.HEAP32.subarray(ptr >> 2, ptr >> 2 + n); // 从内存中读取排序后的数组
+        console.log("Sorted array:", sortedArr);
+        Module._free(ptr); // 释放内存
+    </script>
+</body>
+</html>
+```
+
+这样，你就可以在网页中使用WebAssembly模块实现的插入排序算法了。
+
+
+
+#### asm
+
+```assembly
+section .data
+    array dd 12, 11, 13, 5, 6
+    array_len equ ($ - array) / 4 ; 数组长度
+
+section .text
+    global _start
+
+_start:
+    mov rsi, array ; rsi 指向数组的首地址
+    mov ecx, array_len ; ecx 存储数组长度
+    call insertion_sort ; 调用插入排序函数
+    jmp end ; 跳转到结束
+
+insertion_sort:
+    mov eax, 1 ; eax 为循环变量 i，从第二个元素开始
+outer_loop:
+    cmp eax, ecx ; 检查是否遍历完整个数组
+    jge end_outer_loop ; 如果已经遍历完，则跳出外层循环
+
+    mov ebx, eax ; ebx 存储当前元素的索引 i
+    mov edx, [rsi + 4 * ebx] ; edx 存储当前元素的值
+
+    mov edi, eax ; edi 为循环变量 j，从当前元素的前一个元素开始
+inner_loop:
+    cmp edi, 0 ; 检查是否到达数组开头
+    jl end_inner_loop ; 如果到达数组开头，则跳出内层循环
+
+    mov esi, [rsi + 4 * edi] ; esi 存储当前比较的元素的值
+    cmp esi, edx ; 比较当前元素和当前比较的元素的值
+    jle end_inner_loop ; 如果当前元素大于等于当前比较的元素，则跳出内层循环
+
+    mov [rsi + 4 * (edi + 1)], esi ; 将当前比较的元素往后移动一位
+    sub edi, 1 ; 准备比较前一个元素
+    jmp inner_loop ; 继续内层循环
+
+end_inner_loop:
+    mov [rsi + 4 * (edi + 1)], edx ; 将当前元素插入到合适的位置
+    add eax, 1 ; 准备处理下一个元素
+    jmp outer_loop ; 继续外层循环
+
+end_outer_loop:
+    ret
+
+end:
+    ; 在此处添加程序结束的代码，比如输出排序后的数组等
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
