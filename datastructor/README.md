@@ -1755,11 +1755,11 @@ public class SelectSort {
         System.out.println();
     }
     public static void  selectSort(int[] arr){
-        for (int i = 0;i<arr.length-1;i++){
+        for (int i = 0;i<arr.length;i++){
             int smallest = i;
-            for (int j=i;j<arr.length-1;j++){
-                if (arr[j] > arr[j+1]){
-                    smallest = j+1;
+            for (int j=i;j<arr.length;j++){
+                if (arr[j] < arr[smallest]){
+                    smallest = j;
                 }
             }
             int temp = arr[smallest];
@@ -1768,14 +1768,241 @@ public class SelectSort {
         }
     }
 }
+```
+
+
+
+#### Golang
+
+```go
+import "fmt"
+
+func main() {
+	arr := []int{4, 5, 3, 2, 1, 8, 9, 10, 11, 7, 6}
+	fmt.Println("排序前的数组：", arr)
+	selectSort(arr)
+	fmt.Println("排序后的数组：", arr)
+}
+func selectSort(arr []int) {
+	len := len(arr)
+	for i := 0; i < len; i++ {
+		smallest := i
+		for j := i; j < len; j++ {
+			if arr[j] > arr[smallest] {
+				smallest = j
+			}
+		}
+		arr[smallest], arr[i] = arr[i], arr[smallest]
+	}
+}
 
 ```
 
 
 
+#### JavaScript
+
+```javascript
+function selectSort(arr) {
+  const len = arr.length;
+  for (let i = 0; i < len; i++) {
+    let smallest = i;
+    for (let j = i; j < len; j++) {
+      if (arr[j] < arr[smallest]) {
+        smallest = j;
+      }
+    }
+    let temp = arr[smallest];
+    arr[smallest] = arr[i];
+    arr[i] = temp;
+  }
+}
+const arr = [4, 6, 1, 8, 11, 13, 3];
+console.log("排序前的数组:", arr);
+selectSort(arr);
+console.log("排序后的数组:", arr);
+```
 
 
 
+#### TypeScript
+
+```typescript
+function selectSort(arr: Number[]) {
+  const len = arr.length;
+  for (let i = 0; i < len; i++) {
+    let smallest = i;
+    for (let j = i; j < len; j++) {
+      if (arr[j] < arr[smallest]) {
+        smallest = j;
+      }
+    }
+    let temp = arr[smallest];
+    arr[smallest] = arr[i];
+    arr[i] = temp;
+  }
+}
+const arr1 = [4, 6, 1, 8, 11, 13, 3];
+console.log("排序前的数组:", arr1);
+selectSort(arr1);
+console.log("排序后的数组:", arr1);
+
+```
 
 
+
+#### WebAssembly
+
+首先，让我们编写一个简单的C程序，实现选择排序算法。假设我们将这个文件命名为 `selection_sort.c`：
+
+```c
+#include <stdio.h>
+
+void selectionSort(int arr[], int n) {
+    int i, j, min_idx;
+
+    // One by one move boundary of unsorted subarray
+    for (i = 0; i < n-1; i++) {
+        // Find the minimum element in unsorted array
+        min_idx = i;
+        for (j = i+1; j < n; j++)
+            if (arr[j] < arr[min_idx])
+                min_idx = j;
+
+        // Swap the found minimum element with the first element
+        int temp = arr[min_idx];
+        arr[min_idx] = arr[i];
+        arr[i] = temp;
+    }
+}
+
+int main() {
+    int arr[] = {12, 11, 13, 5, 6};
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    selectionSort(arr, n);
+
+    printf("Sorted array: ");
+    for (int i = 0; i < n; i++)
+        printf("%d ", arr[i]);
+    printf("\n");
+
+    return 0;
+}
+```
+
+接下来，我们将使用Emscripten将这个C程序编译成WebAssembly模块。假设你已经安装了Emscripten并配置好了环境变量。
+
+在命令行中运行以下命令：
+
+```bash
+emcc selection_sort.c -o selection_sort.js -s WASM=1 -s EXPORTED_FUNCTIONS="['_selectionSort']"
+```
+
+这将生成两个文件：`selection_sort.js` 和 `selection_sort.wasm`。其中，`selection_sort.js` 包含了用于加载和运行WebAssembly模块的JavaScript代码。
+
+接着，你可以将这些文件嵌入到你的网页中，并在JavaScript代码中调用选择排序算法。例如：
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAssembly Selection Sort</title>
+</head>
+<body>
+    <script src="selection_sort.js"></script>
+    <script>
+        // 导入 WebAssembly 模块
+        const Module = require('./selection_sort');
+
+        // 调用选择排序函数
+        const arr = [12, 11, 13, 5, 6];
+        const n = arr.length;
+        const ptr = Module._malloc(n * 4); // 申请内存空间
+        Module.HEAP32.set(arr, ptr >> 2); // 将数组复制到内存中
+        Module._selectionSort(ptr, n); // 调用选择排序函数
+        const sortedArr = Module.HEAP32.subarray(ptr >> 2, ptr >> 2 + n); // 从内存中读取排序后的数组
+        console.log("Sorted array:", sortedArr);
+        Module._free(ptr); // 释放内存
+    </script>
+</body>
+</html>
+```
+
+这样，你就可以在网页中使用WebAssembly模块实现的选择排序算法了。
+
+
+
+#### Assembly
+
+```assembly
+section .data
+    array dd 12, 11, 13, 5, 6
+    array_len equ ($ - array) / 4 ; 数组长度
+
+section .text
+    global _start
+
+_start:
+    mov esi, array ; esi 指向数组的首地址
+    mov ecx, array_len ; ecx 存储数组长度
+    call selection_sort ; 调用选择排序函数
+    jmp end ; 跳转到结束
+
+selection_sort:
+    mov eax, 0 ; eax 为循环变量 i，从第一个元素开始
+outer_loop:
+    cmp eax, ecx ; 检查是否遍历完整个数组
+    jge end_outer_loop ; 如果已经遍历完，则跳出外层循环
+
+    mov ebx, eax ; ebx 存储当前最小元素的索引
+    mov edx, [esi + 4 * ebx] ; edx 存储当前最小元素的值
+
+    mov edi, eax ; edi 为循环变量 j，从当前元素的下一个元素开始
+inner_loop:
+    cmp edi, ecx ; 检查是否到达数组末尾
+    jge end_inner_loop ; 如果到达数组末尾，则跳出内层循环
+
+    mov esi_temp, esi ; 保存数组指针
+    add esi_temp, edi ; 移动数组指针到当前元素位置
+    mov esi_temp, [esi_temp] ; 读取当前比较的元素的值
+    cmp esi_temp, edx ; 比较当前元素和当前最小元素的值
+    jl update_min ; 如果当前元素小于当前最小元素，则更新最小元素和索引
+
+update_min:
+    mov ebx, edi ; 更新最小元素的索引
+    mov edx, esi_temp ; 更新最小元素的值
+
+end_inner_loop:
+    ; 交换当前元素和最小元素
+    mov esi_temp, esi ; 保存数组指针
+    add esi_temp, eax ; 移动数组指针到当前元素位置
+    mov esi_temp, [esi_temp] ; 读取当前元素的值
+    mov [esi_temp], edx ; 将最小元素放到当前位置
+    mov esi_temp, esi ; 保存数组指针
+    add esi_temp, ebx ; 移动数组指针到最小元素位置
+    mov esi_temp, [esi_temp] ; 读取最小元素的值
+    mov [esi_temp], eax ; 将当前元素放到最小元素的位置
+
+    add eax, 1 ; 准备处理下一个元素
+    jmp outer_loop ; 继续外层循环
+
+end_outer_loop:
+    ret
+
+end:
+    ; 在此处添加程序结束的代码，比如输出排序后的数组等
+
+```
+
+
+
+### Redix Sort
+
+#### Rust
+
+```rust
+```
 
