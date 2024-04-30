@@ -1696,11 +1696,80 @@ end:
 
 ```
 
+### Selection  Sort
+
+#### Rust
+
+```rust
+fn select_sort<T: Ord + Copy>(arr: &mut [T]) {
+    let len = arr.len();
+    for left in 0..len {
+        let mut smallest = left;
+        for right in (left + 1)..len {
+            if arr[right] < arr[smallest] {
+                smallest = right;
+            }
+        }
+        arr.swap(smallest, left);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_select_sort() {
+        let mut v = vec![4, 6, 1, 8, 11, 13, 3];
+        select_sort(&mut v);
+        println!("{:?}", v);
+        assert_eq!(vec![1, 3, 4, 6, 8, 11, 13], v);
+    }
+}
+
+```
 
 
 
+#### Java
 
+```java
+package com.jason.datastructor.sort;
 
+/**
+ * @Description:
+ * @author: 贾森
+ * @date: 2024年04月30日 上午11:15
+ */
+public class SelectSort {
+    public static void main(String[] args) {
+        int[] intArray = {64, 34, 25, 12, 22, 11, 90};
+        selectSort(intArray);
+        printArray(intArray);
+    }
+    // 打印数组
+    public static <T> void printArray(int[] array) {
+        for (int element : array) {
+            System.out.print(element + " ");
+        }
+        System.out.println();
+    }
+    public static void  selectSort(int[] arr){
+        for (int i = 0;i<arr.length-1;i++){
+            int smallest = i;
+            for (int j=i;j<arr.length-1;j++){
+                if (arr[j] > arr[j+1]){
+                    smallest = j+1;
+                }
+            }
+            int temp = arr[smallest];
+            arr[smallest] = arr[i];
+            arr[i] = temp;
+        }
+    }
+}
+
+```
 
 
 
