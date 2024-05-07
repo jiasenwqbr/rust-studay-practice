@@ -2116,3 +2116,265 @@ public class RedixSort {
 }
 ```
 
+
+
+#### Golang
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	arr := []int{4, 6, 1, 8, 11, 13, 3, 15, 19, 16, 5}
+	radixSort(arr)
+	fmt.Println("排序后的数组：", arr)
+}
+
+func radixSort(arr []int) {
+	max := arr[0]
+	for _, value := range arr {
+		if value > max {
+			max = value
+		}
+	}
+	radix := 10
+	k := 0
+	for place := 1; place < max; place *= radix {
+		var temp [10][]int
+		var order [10]int
+		for i := 0; i < len(arr); i++ {
+			digit := (arr[i] / place) % radix
+			temp[digit] = append(temp[digit], arr[i])
+			order[digit] += 1
+		}
+		for j := 0; j < radix; j++ {
+			if order[j] != 0 {
+				for m := 0; m < len(temp[j]); m++ {
+					arr[k] = temp[j][m]
+					k++
+				}
+			}
+		}
+		k = 0
+	}
+}
+```
+
+
+
+#### JavaScript
+
+```javascript
+function redixSort(arr) {
+  let max = arr[0];
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i] > max) {
+      max = arr[i];
+    }
+  }
+  const redix = 10;
+  let k = 0;
+  for (var place = 1; place < max; place *= redix) {
+    let temp = [[]];
+    let order = [];
+    for (var j = 0; j < arr.length; j++) {
+      var degit = Math.floor(arr[j] / place) % redix;
+      console.log(degit);
+      if (!temp[degit]) {
+        temp[degit] = [];
+      }
+      temp[degit].push(arr[j]);
+      if (!order[degit]) {
+        order[degit] = 0;
+      }
+      order[degit] += 1;
+    }
+    console.log(order);
+    console.log(temp);
+    for (let m = 0; m < redix; m++) {
+      if (order[m]) {
+        for (let n = 0; n < temp[m].length; n++) {
+          arr[k] = temp[m][n];
+          k++;
+        }
+      }
+    }
+    k = 0;
+  }
+}
+
+const arr = [4, 6, 1, 8, 11, 13, 3];
+console.log("排序前的数组:", arr);
+redixSort(arr);
+console.log("排序后的数组:", arr);
+```
+
+
+
+#### TypeScript
+
+```typescript
+function redixSort(arr: number[]) {
+  let max = arr[0];
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i] > max) {
+      max = arr[i];
+    }
+  }
+  const redix = 10;
+  let k = 0;
+  for (var place = 1; place < max; place *= redix) {
+    let temp: number[][] = [[]];
+    let order: number[] = [];
+    for (var j = 0; j < arr.length; j++) {
+      var degit = Math.floor(arr[j] / place) % redix;
+      if (!temp[degit]) {
+        temp[degit] = [];
+      }
+      temp[degit].push(arr[j]);
+      if (!order[degit]) {
+        order[degit] = 0;
+      }
+      order[degit] += 1;
+    }
+
+    for (let m = 0; m < redix; m++) {
+      if (order[m]) {
+        for (let n = 0; n < temp[m].length; n++) {
+          arr[k] = temp[m][n];
+          k++;
+        }
+      }
+    }
+    k = 0;
+  }
+}
+
+const arr = [4, 6, 1, 8, 11, 13, 3];
+console.log("排序前的数组:", arr);
+redixSort(arr);
+console.log("排序后的数组:", arr);
+```
+
+
+
+#### WebAssembly
+
+```c
+#include<math.h>
+
+//基数排序
+void bucketSort3(int *p, intn)
+{
+    //获取数组中的最大数
+    intmaxNum = findMaxNum(p, n);
+    //获取最大数的位数，次数也是再分配的次数。
+    intloopTimes = getLoopTimes(maxNum);
+    inti;
+    //对每一位进行桶分配
+    for(i = 1; i <= loopTimes; i++)
+    {
+        sort2(p, n, i);
+    }
+}
+//获取数字的位数
+int getLoopTimes(intnum)
+{
+    intcount = 1;
+    inttemp = num / 10;
+    while(temp != 0)
+    {
+        count++;
+        temp = temp / 10;
+    }
+    returncount;
+}
+//查询数组中的最大数
+int findMaxNum(int *p, intn)
+{
+    inti;
+    intmax = 0;
+    for(i = 0; i < n; i++)
+    {
+        if(*(p + i) > max)
+        {
+            max = *(p + i);
+        }
+    }
+    returnmax;
+}
+//将数字分配到各自的桶中，然后按照桶的顺序输出排序结果
+void sort2(int *p, intn, intloop)
+{
+    //建立一组桶此处的20是预设的根据实际数情况修改
+    intbuckets[10][20] = {};
+    //求桶的index的除数
+    //如798个位桶index=(798/1)%10=8
+    //十位桶index=(798/10)%10=9
+    //百位桶index=(798/100)%10=7
+    //tempNum为上式中的1、10、100
+    inttempNum = (int)pow(10, loop - 1);
+    inti, j;
+    for(i = 0; i < n; i++)
+    {
+        introw_index = (*(p + i) / tempNum) % 10;
+        for(j = 0; j < 20; j++)
+        {
+            if(buckets[row_index][j] == NULL)
+            {
+                buckets[row_index][j] = *(p + i);
+                break;
+            }
+        }
+    }
+    //将桶中的数，倒回到原有数组中
+    int k = 0;
+    for(i = 0; i < 10; i++)
+    {
+        for(j = 0; j < 20; j++)
+        {
+            if(buckets[i][j] != NULL)
+            {
+                *(p + k) = buckets[i][j];
+                buckets[i][j] = NULL;
+                k++;
+            }
+        }
+    }
+}
+```
+
+接下来，你需要使用 Emscripten 或其他工具将该 C 代码编译成 WebAssembly 模块。以下是一个使用 Emscripten 编译的示例命令：
+
+```
+emcc radix_sort.c -o radix_sort.wasm -s EXPORTED_FUNCTIONS="['_radixSort']"
+```
+
+然后，你可以在 JavaScript 中加载并调用该 WebAssembly 模块，实现基数排序的功能。
+
+```javascript
+// 加载 WebAssembly 模块
+fetch('radix_sort.wasm')
+  .then(response => response.arrayBuffer())
+  .then(buffer => WebAssembly.instantiate(buffer))
+  .then(results => {
+    // 获取 WebAssembly 模块实例
+    const { instance } = results;
+
+    // 获取基数排序函数
+    const radixSort = instance.exports.bucketSort3;
+
+    // 测试基数排序
+    const arr = new Int32Array([170, 45, 75, 90, 802, 24, 2, 66]);
+    console.log("原始数组：", arr);
+
+    // 调用基数排序函数
+    bucketSort3(arr.byteOffset, arr.length);
+
+    // 打印排序后的数组
+    console.log("排序后的数组：", arr);
+  });
+```
+
+这样，你就可以使用 WebAssembly 实现基数排序了。
