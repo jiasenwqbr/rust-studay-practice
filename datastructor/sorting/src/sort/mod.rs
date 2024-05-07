@@ -1,3 +1,4 @@
+mod counting_sort;
 mod insertion_sort;
 mod redix_sort;
 mod select_sort;
