@@ -1,4 +1,5 @@
 mod insertion_sort;
+mod redix_sort;
 mod select_sort;
 #[cfg(test)]
 use std::cmp;

@@ -2001,8 +2001,118 @@ end:
 
 ### Redix Sort
 
+（1）概念：基数排序（Radix sort）是一种非比较型整数排序算法，其原理是将整数按位数切割成不同的数字，然后按每个位数分别比较。
+基数排序是非比较型整数排序算法，其原理是将整数按位分割进行排序。基数排序适用于大范围数据排序，打破了计数排序的限制。由于整数也可以表达字符串（比如名字或日期）和特定格式的浮点数，所以基数排序也不是只能使用于整数。
+（2）2种排序方式：
+最低位优先法(LSD)：从最低位向最高位依次按位进行排序。
+最高位优先法(MSD)：从最高位向最低位依次按位进行排序。
+（3）按位分割小技巧
+arr[i] / digit % 10，其中digit为10^n。
+
+
+
 #### Rust
 
 ```rust
+/// Sorts the elements of `arr` in-place using radix sort.
+///
+/// Time complexity is `O((n + b) * logb(k))`, where `n` is the number of elements,
+/// `b` is the base (the radix), and `k` is the largest element.
+/// When `n` and `b` are roughly the same maginitude, this algorithm runs in linear time.
+///
+/// Space complexity is `O(n + b)`.
+pub fn redix_sort(arr: &mut [u64]) {
+    let max: usize = match arr.iter().max() {
+        Some(&x) => x as usize,
+        None => return,
+    };
+    // Make radix a power of 2 close to arr.len() for optimal runtime
+    let radix = arr.len().next_power_of_two();
+    println!("{:?}", radix);
+    // Counting sort by each digit from least to most significant
+    let mut place = 1;
+    while place < max {
+        let degit_of = |x| x as usize / place % radix;
+        // Count digit occurrenses
+        let mut counter = vec![0; radix];
+        for &x in arr.iter() {
+            counter[degit_of(x)] += 1;
+        }
+        // Compute last index of each digit
+        for i in 1..radix {
+            counter[i] += counter[i - 1];
+        }
+        // Write elements to their new indices
+        for &x in arr.to_owned().iter().rev() {
+            counter[degit_of(x)] -= 1;
+            arr[counter[degit_of(x)]] = x;
+        }
+        place *= radix;
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::redix_sort;
+
+    #[test]
+    fn descending() {
+        let mut v = vec![4, 6, 1, 8, 11, 13, 3];
+        redix_sort(&mut v);
+        println!("{:?}", v);
+        assert_eq!(vec![1, 3, 4, 6, 8, 11, 13], v);
+    }
+}
+
+```
+
+
+
+#### Java
+
+```java
+package com.jason.datastructor.sort;
+
+/**
+ * @Description:
+ * @author: 贾森
+ * @date: 2024年05月06日 下午5:28
+ */
+public class RedixSort {
+    public static void main(String[] args) {
+        int[]data = {73, 22, 93, 43, 55, 14, 28, 65, 39, 81, 33, 100};
+        RedixSort.sort(data, 3);
+        for(int i = 0; i < data.length; i++) {
+            System.out.print(data[i] + "  ");
+        }
+    }
+
+    private static void sort(int[] number, int d) {
+        int k = 0;
+        int n = 1;
+        int m = 1; //控制键值排序依据在哪一位
+
+        int[][] temp = new int[10][number.length]; // 数组的第一维表示可能的余数0-9
+        int[] order = new int[10]; // 数组order[i]用来表示该位是i的数的个数
+        while(m <= d){
+            for (int i = 0;i < number.length;i++){
+                int lsd = (number[i]/n)%10;
+                temp[lsd][order[lsd]] = number[i];
+                order[lsd]++;
+            }
+            for (int i = 0;i<10;i++){
+                if (order[i]!=0){
+                    for (int j = 0; j < order[i] ;j++){
+                        number[k] = temp[i][j];
+                        k++;
+                    }
+                    order[i] = 0;
+                }
+            }
+            n*=10;
+            k = 0;
+            m++;
+        }
+    }
+}
 ```
 
